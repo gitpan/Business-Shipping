@@ -6,7 +6,7 @@ Business::Shipping::RateRequest::Online - Abstract class for shipping cost ratin
 
 =head1 VERSION
 
-$Rev: 157 $      $Date: 2004-07-09 14:25:49 -0700 (Fri, 09 Jul 2004) $
+$Rev: 184 $      $Date: 2004-09-16 19:34:19 -0700 (Thu, 16 Sep 2004) $
 
 =head1 METHODS
 
@@ -14,7 +14,7 @@ $Rev: 157 $      $Date: 2004-07-09 14:25:49 -0700 (Fri, 09 Jul 2004) $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 157 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 184 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -80,8 +80,44 @@ sub _get_response
     my ( $self, $request_param ) = @_;
     trace 'called';
 
-    my $ua = LWP::UserAgent->new; 
-    my $response = $ua->request( $request_param );
+    my $ua = LWP::UserAgent->new;
+    my $response;
+    $ua->timeout( 15 );  # TODO: Make configurable
+    $ua->env_proxy();    # Read proxy settings from environment variables.
+    
+    my $try_limit = $Business::Shipping::Config::Try_Limit; # TODO: Make config
+    my $tries;
+    my $success;
+
+    # The following are known, common errors.
+    #    'HTTP Error. Status line: 500',
+    #    'HTTP Error. Status line: 500 Server Error',        
+    #    'HTTP Error. Status line: 500 read timeout',
+    #    'HTTP Error. Status line: 500 Bizarre copy of ARRAY',
+    #    'HTTP Error. Status line: 500 Connect failed:',
+    #    'HTTP Error. Status line: 500 Can\'t connect to ',
+    
+    for ( $tries = 1; $tries <= $try_limit; $tries++ ) {
+        $response = $ua->request( $request_param );
+        
+        if ( ! $response->is_success() ) {
+            sleep 2; # Default recommended wait time. # TODO: Make configurable
+            next;
+        }
+        else {
+            last;
+        }
+    }
+    
+    if ( ! $response->is_success() ) {
+        $self->user_error( 
+            "There was an error on the rate server: \"" 
+            . $self->response->status_line
+            . "\".  Please try again later"
+        ); 
+        $self->is_success( 0 );
+        return;
+    }
     
     return $response;
 }

@@ -1,6 +1,6 @@
 # Makefile.PL - Installation script for Business::Shipping
 # 
-# $Id: Makefile.PL 165 2004-09-14 16:20:29Z db-ship $
+# $Id: Makefile.PL 186 2004-09-17 17:05:53Z db-ship $
 #
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -27,19 +27,20 @@ WriteMakefile(
     AUTHOR		    => 'Dan Browning <db@kavod.com>',
 	CONFIGURE		=> \&extra_WriteMakefile_options,
     PREREQ_PM		=>	{
-		'Bundle::DBD::CSV'		     => 0,
-		'Cache::FileCache'		     => 0,
-		'Class::MethodMaker::Engine' => 0,
-		'Clone'					     => 0,
-		'Config::IniFiles'		     => 0,
-		'Crypt::SSLeay'			     => 0,
-		'Getopt::Mixed'		      	 => 0,
-		'Log::Log4perl'              => 0,
-        'LWP::UserAgent'		     => 0,
-		'Math::BaseCnv'			     => 0,
-		'Scalar::Util'			     => '1.10',
-		'XML::DOM' 				     => 0,
-		'XML::Simple'			     => '2.05',
+		'Bundle::DBD::CSV'		         => 0,
+        'Business::Shipping::DataFiles'  => 0,  # Only needed for UPS_Offline.
+		'Cache::FileCache'		         => 0,
+		'Class::MethodMaker::Engine'     => 0,
+		'Clone'					         => 0,
+		'Config::IniFiles'		         => 0,
+		'Crypt::SSLeay'			         => 0,
+		'Getopt::Mixed'		      	     => 0,
+		'Log::Log4perl'                  => 0,
+        'LWP::UserAgent'		         => 0,
+		'Math::BaseCnv'		    	     => 0,
+		'Scalar::Util'			         => '1.10',
+		'XML::DOM' 				         => 0,
+		'XML::Simple'			         => '2.05',
 	},
 		#'Archive::Zip'			     => 0,      # For updates only
     	#'Devel::Required'	      	 => '0.03', # For documentation updates only
@@ -64,38 +65,39 @@ sub MY::install {
 sub MY::postamble {
 	return qq{
 docs :
-	podchecker -nowarnings doc/INSTALL.pod doc/README.pod
-	find lib -name '*.pm' -exec podchecker -nowarnings {} \\;
-	pod2text doc/README.pod > README
-	pod2html doc/README.pod > doc/README.html
+	find lib -name '*.pm' -or -name '*.pod' -exec podchecker -nowarnings {} \\;
 	pod2text doc/INSTALL.pod > INSTALL
 	pod2html doc/INSTALL.pod > doc/INSTALL.html
-	pod2text lib/Business/Shipping.pm > doc/usage.txt
-	pod2html lib/Business/Shipping.pm > doc/usage.html
+	pod2text doc/INSTALL.pod > doc/INSTALL.txt
+	pod2text lib/Business/Shipping.pm > README
+	pod2text lib/Business/Shipping.pm > doc/README.txt
+	pod2html lib/Business/Shipping.pm > doc/README.html
 	
 support_files_install :
 	\@echo "Installing support files (database, configuration, etc.) to $my_globals{SUPPORT_FILES_DIR}"
 	\@\$(MKPATH) $my_globals{SUPPORT_FILES_DIR}/log
-	\@\$(MKPATH) $my_globals{SUPPORT_FILES_DIR}/data
 	\@\$(MKPATH) $my_globals{SUPPORT_FILES_DIR}/config
-	\@\$(CP) --recursive --force data/*   $my_globals{SUPPORT_FILES_DIR}/data/
 	\@\$(CP) --recursive --force config/* $my_globals{SUPPORT_FILES_DIR}/config/
 };  #/qq
 }
 
 sub extra_WriteMakefile_options {
     
+    my $module = "Business::Shipping";
     my $question = qq(
-             ---  Business::Shipping support files directory  ---
+             ---  $module Support files directory  ---
   
-Business::Shipping comes with various support files for configuration, database,
-etc.  Please input the path you would like to copy these files to.  You can 
-modify the path later by changing the Business/Shipping/Config.pm file.
+$module module comes with various support files for configuration, logging, etc.
+Please input the path you would like to copy these files to.  You can modify the
+path later by changing the Config.pm file.
 
 On many systems, this directory will only be accessible by the user who 
 installed perl, typically root.
 
-Business::Shipping support files directory:);
+Note: If you wish to use offline cost estimation, the data files should be 
+installed: Business::Shipping::DataFiles.
+
+$module Support files directory:);
 
 	$my_globals{ SUPPORT_FILES_DIR } = prompt( 
         $question, 

@@ -1,6 +1,6 @@
 # Business::Shipping::Shipment - Abstract class
 # 
-# $Id: Shipment.pm 165 2004-09-14 16:20:29Z db-ship $
+# $Id: Shipment.pm 184 2004-09-17 02:34:19Z db-ship $
 # 
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved. 
 # This program is free software; you may redistribute it and/or modify it under
@@ -9,7 +9,7 @@
 
 package Business::Shipping::Shipment;
 
-$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 184 $; $r =~ /\d+/; $&; };
 
 =head1 NAME
 
@@ -17,7 +17,7 @@ Business::Shipping::Shipment - Abstract class
 
 =head1 VERSION
 
-$Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
+$Rev: 184 $      $Date: 2004-09-16 19:34:19 -0700 (Thu, 16 Sep 2004) $
 
 =head1 DESCRIPTION
 
@@ -390,7 +390,7 @@ sub add_package
     }
     
     my $package;
-    eval { $package  = Business::Shipping->new_subclass( 'Package::'  . $self->shipper ); };
+    eval { $package  = Business::Shipping->_new_subclass( 'Package::'  . $self->shipper ); };
     logdie "Error when creating Package subclass: $@" if $@;
     logdie "package was undefined."  if not defined $package;
     

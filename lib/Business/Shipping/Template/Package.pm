@@ -1,27 +1,18 @@
-# $Id: Package.pm 159 2004-09-10 03:26:14Z db-ship $
-# 
-# Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
-# This program is free software; you may redistribute it and/or modify it under
-# the same terms as Perl itself. See LICENSE for more info.
-# 
-
-package Business::Shipping::Package::Template;
-
 =head1 NAME
 
-Business::Shipping::Package::Template
+Business::Shipping::Template::Package
 
 =head1 VERSION
 
-$Rev: 159 $      $Date: 2004-09-09 20:26:14 -0700 (Thu, 09 Sep 2004) $
+$Rev: 184 $      $Date: 2004-09-16 19:34:19 -0700 (Thu, 16 Sep 2004) $
 
 =head1 METHODS
 
-=over 4
-
 =cut
 
-$VERSION = do { my $r = q$Rev: 159 $; $r =~ /\d+/; $&; };
+package Business::Shipping::Template::Package;
+
+$VERSION = do { my $r = q$Rev: 184 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -35,8 +26,6 @@ use Class::MethodMaker 2.0
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 

@@ -1,6 +1,6 @@
 # Business::Shipping::Config - Configuration functions
 # 
-# $Id: Config.pm 165 2004-09-14 16:20:29Z db-ship $
+# $Id: Config.pm 184 2004-09-17 02:34:19Z db-ship $
 # 
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -14,7 +14,7 @@ Business::Shipping::Config - Configuration functions
 
 =head1 VERSION
 
-$Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
+$Rev: 184 $      $Date: 2004-09-16 19:34:19 -0700 (Thu, 16 Sep 2004) $
 
 =head1 DESCRIPTION
 
@@ -30,7 +30,7 @@ Config::IniFiles module.
 use constant DEFAULT_SUPPORT_FILES_DIR => '/var/perl/Business-Shipping';
 #use constant DEFAULT_SUPPORT_FILES_DIR => '~_~SUPPORT_FILES_DIR~_~';
 
-$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 184 $; $r =~ /\d+/; $&; };
 @EXPORT = qw/ cfg cfg_obj config_to_hash config_to_ary_of_hashes /;
 
 use strict;
@@ -62,6 +62,10 @@ $main_config_file = "$support_files_dir/config/config.ini";
 if ( ! -f $main_config_file ) {
     die "Could not open main configuration file: $main_config_file: $!";
 }
+
+# See Online.pm
+
+$Business::Shipping::Config::Try_Limit = 2;
 
 tie my %cfg, 'Config::IniFiles', (      -file => $main_config_file );
 my $cfg_obj = Config::IniFiles->new(    -file => $main_config_file );
@@ -163,6 +167,34 @@ sub config_to_ary_of_hashes
     }
 
     return @ary;
+}
+
+sub data_dir_name
+{
+    # name only.
+    return cfg()->{ general }->{ data_dir_name } || 'data';
+}
+
+sub data_dir
+{
+    # full path.  combine with support files dir if applicable.
+    
+    my $data_dir_name = data_dir_name();
+    
+    # A filename that will be present in any data dir (to know if it exists).
+    my $test_filename = 'wash.csv';
+    if ( -f "./$data_dir_name/$test_filename" ) {
+        return "./$data_dir_name";
+    }
+    elsif ( -f "../Business-Shipping-DataFiles/$data_dir_name/$test_filename" ) {
+        return "../Business-Shipping-DataFiles/$data_dir_name";
+    }
+    elsif ( -f support_files() . "/$data_dir_name/$test_filename" ) {
+        return support_files() . "/$data_dir_name";
+    }
+    else {
+        die "Data dir could not be found.  Is data_dir configured correctly?";
+    }
 }
 
 1;

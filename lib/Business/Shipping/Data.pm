@@ -10,7 +10,7 @@ Business::Shipping::Data - Database interface
 
 =head1 VERSION
 
-$Id: Data.pm 165 2004-09-14 16:20:29Z db-ship $
+$Id: Data.pm 183 2004-09-14 22:57:41Z db-ship $
 
 =head1 DESCRIPTION
 
@@ -22,7 +22,7 @@ Uses DBI for CSV file access.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 183 $; $r =~ /\d+/; $&; };
 @EXPORT = qw( record );
 
 use strict;
@@ -80,7 +80,9 @@ sub dbh
     if ( ! defined $::dbh_store ) {
         $::dbh_store = {};
         my $support_files = Business::Shipping::Config::support_files();
-        my $dsn = cfg()->{Database}{DSN} || "DBI:CSV:f_dir=$support_files/data";
+        
+        my $data_dir = Business::Shipping::Config::data_dir();
+        my $dsn = cfg()->{Database}{DSN} || "DBI:CSV:f_dir=$data_dir";
         $dsn .= ";csv_eol=\n;";
         
         my $dbh = DBI->connect( $dsn )

@@ -1,6 +1,6 @@
-# Business::Shipping - Cost estimation and tracking for UPS and USPS
+# Business::Shipping - Rates and tracking for UPS and USPS
 #
-# $Id: Shipping.pm 165 2004-09-14 16:20:29Z db-ship $
+# $Id: Shipping.pm 185 2004-09-17 17:00:41Z db-ship $
 #
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -10,65 +10,84 @@ package Business::Shipping;
 
 =head1 NAME
 
-Business::Shipping - Cost estimation and tracking for UPS and USPS
+Business::Shipping - Rates and tracking for UPS and USPS
+
+=head1 VERSION
+
+Version 1.53
+
+=cut
+
+$VERSION = '1.53';
 
 =head1 SYNOPSIS
 
 =head2 Rate request example
 
-    use Business::Shipping;
-    
-    my $rate_request = Business::Shipping->rate_request(
-        shipper   => 'Offline::UPS',
-        service   => 'GNDRES',
-        from_zip  => '98682',
-        to_zip    => '98270',
-        weight    =>  5.00,
-    );    
-    
-    $rate_request->submit() or logdie $rate_request->user_error();
-    
-    print $rate_request->total_charges();
+ use Business::Shipping;
+ 
+ my $rate_request = Business::Shipping->rate_request(
+     shipper   => 'Offline::UPS',
+     service   => 'GNDRES',
+     from_zip  => '98682',
+     to_zip    => '98270',
+     weight    =>  5.00,
+ );    
+ 
+ $rate_request->go() or die $rate_request->user_error();
+ 
+ print $rate_request->total_charges();
 
-=head2 Shipping tasks implemented at this time
+=head1 FEATURES
 
-=over
+Business::Shipping currently supports three shippers:
 
-=item * UPS shipment cost calculation using UPS Online WebTools.
+=head2 UPS_Online: United Parcel Service
 
-=item * UPS shipment cost calculation using offline tables.
+=over 4
 
-=item * USPS shipment cost calculation using USPS Online WebTools.
+=item * Shipment rate estimation using UPS Online WebTools.
 
-=item * UPS shipment tracking.
-
-=item * USPS shipment tracking.
+=item * Shipment tracking.
 
 =back
 
-=head2 Shipping tasks planned for future addition
+=head2 UPS_Offline: United Parcel Service
 
-=over
+=over 4
 
-=item * USPS zip code lookup
+=item * Shipment rate estimation using offline tables.
 
-=item * USPS address verification
+=back
 
-=item * USPS shipment cost estimation via offline tables 
+=head2 USPS_Online: United States Postal Service
 
-=item * FedEX shipment cost estimation
+=over 4
+
+=item * Shipment rate estimation using USPS Online WebTools.
+
+=item * Shipment tracking.
 
 =back 
 
+=head1 INSTALLATION
+
+ perl -MCPAN -e 'install Bundle::Business::Shipping'
+ 
+See the INSTALL file for more details.
+ 
 =head1 REQUIRED MODULES
 
+Some of these modules are not required to use only one shipper.  See the INSTALL
+file for more information.
+
  Bundle::DBD::CSV (any)
+ Business::Shipping::DataFiles (any)
  Cache::FileCache (any)
  Class::MethodMaker::Engine (any)
  Clone (any)
  Config::IniFiles (any)
  Crypt::SSLeay (any)
- Getopt::Mixed (any)
  Log::Log4perl (any)
  LWP::UserAgent (any)
  Math::BaseCnv (any)
@@ -76,30 +95,123 @@ Business::Shipping - Cost estimation and tracking for UPS and USPS
  XML::DOM (any)
  XML::Simple (2.05)
 
-=head1 INSTALLATION
-
-C<perl -MCPAN -e 'install Bundle::Business::Shipping'>
-
-See the INSTALL file for more information.
- 
 =head1 ERROR/DEBUG HANDLING
 
 Log4perl is used for logging error, debug, etc. messages.  See 
 config/log4perl.conf.  For simple manipulation of the current log level, use
 the Business::Shipping->log_level( $log_level ) class method (below).
+
+=head1 GETTING STARTED
+
+Be careful to read, understand, and comply with the terms of use for the 
+provider that you will use.
+
+=head2 UPS_Offline: For United Parcel Service (UPS) offline rate requests
+
+No signup required.  Business::Shipping::DataFiles has all of rate tables.
+
+=head2 UPS_Online: For United Parcel Service (UPS) Online XML: Free signup
+
+=over 4
+
+=item * Read the legal terms and conditions: 
+L<http://www.ups.com/content/us/en/resources/service/terms/index.html>
+        
+=item * L<https://www.ups.com/servlet/registration>
+
+=item * After receiving a User Id and Password from UPS, login, then select
+        "Get Access Key", then "Get XML Access Key".
+
+=item * Read more about UPS Online Tools at L<http://www.ec.ups.com>
+
+=back
+
+=head2 USPS_Online: For United States Postal Service (USPS): Free signup
+
+=over 4
+
+=item * L<http://www.uspswebtools.com/registration/>
+
+=item * (More info at L<http://www.uspswebtools.com>)
+
+=item * The online signup will result in a testing-only account (only a small
+        sample of queries will work).  
+
+=item * To activate the "production" use of your USPS account, you must follow 
+        the USPS documentation.  As of Sept 16 2004, that means contacting the 
+        USPS Internet Customer Care Center by e-mail 
+        (C<icustomercare@usps.com>) or phone: 1-800-344-7779.
+
+=back
+
+=head1 Use of this software
+
+It is appreciated when users mention their use of Business::Shipping to the 
+author and/or on their website or in their application.
+
+=over 4
+
+=item * Interchange e-commerce system ( L<http://www.icdevgroup.org> ).  See 
+    C<UserTag/business-shipping.tag>.
+
+=item * The paymentonline.com mod_perl/template 
+    toolkit system.
+
+=item * The "Shopping Cart" Wobject for the WebGUI project, by Andy Grundman 
+    <andy@kahncentral.net>.
+    L<http://www.plainblack.com/wobjects?wid=1143&func=viewSubmission&sid=654>
+    L<http://www.plainblack.com/uploads/1143/654/webgui-shopping-cart-1.0.tar.gz>
+
+=item * Mentioned in YAPC 2004 Presentation: "Writing web applications with perl ..."
+    L<http://www.beamartyr.net/YAPC-2004/text25.html>
+
+=item * Phatmotorsports.com
+
+=back
+
+=head1 WEBSITE
+
+The website carries the most recent version.
+
+L<http://www.kavod.com/Business-Shipping>
+
+=head1 Preloading Modules
+
+To preload all modules, call Business::Shipping with this syntax:
+
+ use Business::Shipping { preload => 'All' };
+
+To preload the modules for just one shipper:
+
+ use Business::Shipping { preload => 'USPS_Online' };
  
+Without preloading, some modules will be loaded at runtime.  Normally, runtime
+loading is the best mode of operation.  However, there are some circumstances 
+when preloading is advantagous.  For example:
+
+=over 4
+
+=item * For mod_perl, to load the modules only once at startup instead of at 
+ startup and then additional modules later on.  (Thanks to Chris Ochs 
+ <chris@paymentonline.com> for contributing to this information).
+
+=item * For compatibilty with some security modules (e.g. Safe).
+
+=item * To move the delay that would normally occur with the first request into 
+ startup time.  That way, it takes longer to start up, but the first user
+ will not experience any delay.
+
+=back
+
 =head1 METHODS
 
 =cut
-
-$VERSION = '1.52';
 
 use strict;
 use warnings;
 use Carp;
 use Business::Shipping::Logging;
 use Business::Shipping::ClassAttribs;
-use Scalar::Util 'blessed';
 use Class::MethodMaker 2.0
     [ 
       new    => [ qw/ -hash new /                                     ],
@@ -107,7 +219,66 @@ use Class::MethodMaker 2.0
       scalar => [ { -static => 1, -default => 'tx_type' }, 'Optional' ],
     ];
 
-=head2 $self->init( %args )
+$Business::Shipping::RuntimeLoad = 1;
+
+sub import 
+{
+    my ( $class_name, $record ) = @_;
+    
+    return unless defined $record and ref( $record ) eq 'HASH';
+    
+    while ( my ( $key, $val ) = each %$record ) {
+        if ( lc $key eq 'preload' ) {
+            
+            # Required modules lists
+            # ======================
+            # Each of these modules does a compile-time require of all 
+            # the modules that it needs.  If, in the future, any of these
+            # modules switch to a run-time require, then update this list with
+            # the modules that may be run-time required.
+            
+            my $module_list = {
+                'USPS_Online' => [
+                    'Business::Shipping::USPS_Online::Tracking',
+                ],
+                'UPS_Online' => [
+                    'Business::Shipping::UPS_Online::Tracking',
+                ],
+                'UPS_Offline' => [
+                ],
+            };
+                    
+            my @to_load;
+                
+            if ( lc $val eq 'all' ) {
+                for ( keys %$module_list ) {
+                    my $aryref = $module_list->{ $_ };
+                    push @to_load, @$aryref;
+                }
+            }
+            else {
+                while ( my ( $shipper, $mod_list ) = each %$module_list ) {
+                    if ( lc $val eq lc $shipper ) {
+                        push @to_load, ( 
+                            @$mod_list, 
+                            'Business::Shipping::$shipper::RateRequest',
+                        );
+                    }
+                }
+            }
+            
+            if ( @to_load ) 
+                { $Business::Shipping::RuntimeLoad = 0 };
+            
+            foreach my $module ( Business::Shipping::Util::unique( @to_load ) ) {
+                eval "use $module;";
+                die $@ if $@;
+            }
+        }
+    }
+}
+
+=head2 $obj->init( %args )
 
 Generic attribute setter.
 
@@ -126,7 +297,7 @@ sub init
     return;
 }
 
-=head2 $self->user_error( "Error message" )
+=head2 $obj->user_error( "Error message" )
 
 Log and store errors that should be visibile to the user.
 
@@ -141,7 +312,7 @@ sub user_error
         
         # Make it look like I'm calling error() from the caller, instead of this
         # function.
-        
+
         my ( $package, $filename, $line, $sub ) = caller( 1 );
         error( 
             { 
@@ -158,7 +329,7 @@ sub user_error
     return $self->_user_error_msg;
 }
 
-=head2 $self->validate()
+=head2 $obj->validate()
 
 Confirms that the object is valid.  Checks that required attributes are set.
 
@@ -192,10 +363,11 @@ sub validate
     }
 }
 
-=head2 rate_request()
+=head2 $obj->rate_request()
 
 This method is used to request shipping rate information from online providers
-or offline tables.  A hash is accepted as input with the following key values:
+or offline tables.  A hash is accepted as input.  The acceptable values are 
+determined by the shipper class, but the following are common to all:
 
 =over 4
 
@@ -203,16 +375,6 @@ or offline tables.  A hash is accepted as input with the following key values:
 
 The name of the shipper to use. Must correspond to a module by the name of:
 C<Business::Shipping::SHIPPER>.  For example, C<UPS_Online>.
-
-=item * user_id
-
-A user_id, if required by the provider. Online::USPS and Online::UPS require
-this, while Offline::UPS does not.
-
-=item * password
-
-A password,  if required by the provider. Online::USPS and Online::UPS require
-this, while Offline::UPS does not.
 
 =item * service
 
@@ -240,6 +402,22 @@ The destination country.  Required for international shipments only.
 Weight of the shipment, in pounds, as a decimal number.
 
 =back 
+
+There are some additional common values:
+
+=over 4
+
+=item * user_id
+
+A user_id, if required by the provider. Online::USPS and Online::UPS require
+this, while Offline::UPS does not.
+
+=item * password
+
+A password,  if required by the provider. Online::USPS and Online::UPS require
+this, while Offline::UPS does not.
+
+=back
 
 =cut
 
@@ -270,34 +448,12 @@ sub rate_request
         }
     }
         
-    my $rr = Business::Shipping->new_subclass( $shipper . '::RateRequest' );
+    my $rr = Business::Shipping->_new_subclass( $shipper . '::RateRequest' );
     logdie "New $shipper::RateRequest object was undefined." if not defined $rr;
     
     $rr->init( %opt );
    
     return $rr;
-}
-
-=head2 Business::Shipping->new_subclass( "Subclass::Name", %opt )
-
-Generates a subclass, such as a Shipment object.
-
-=cut
-
-sub new_subclass
-{
-    my ( $class, $subclass, %opt ) = @_;
-    
-    Carp::croak( "Error before new_subclass was called: $@" ) if $@;
-    
-    my $new_class = $class . '::' . $subclass;
-    eval "use $new_class";
-    Carp::croak( "Error when trying to use $new_class: \n\t$@" ) if $@;
-    
-    my $new_sub_object = eval "$new_class->new()";
-    Carp::croak( "Failed to create new $new_class object.  Error: $@" ) if $@;
-    
-    return $new_sub_object;    
 }
 
 =head2 Business::Shipping->log_level( $log_level )
@@ -316,7 +472,7 @@ sub event_handlers
     my ( $self, $event_handlers_hash ) = @_;
     
     use Data::Dumper;
-    print "called with event_handlers_hash = " . Dumper( $event_handlers_hash );
+    
     KEY: foreach my $key ( keys %$event_handlers_hash ) {
         $key = uc $key;
         foreach my $Log_Level ( @Business::Shipping::KLogging::Levels ) {
@@ -339,10 +495,78 @@ sub event_handlers
     return;
 }
 
+=head2 Business::Shipping->_new_subclass( "Subclass::Name", %opt )
+
+Private Method.  
+
+Generates an object of a given subclass dynamically.  Will dynamically 'use' 
+the corresponding module, unless runtime module loading has been disabled via 
+the 'preload' option.
+
+=cut
+
+sub _new_subclass
+{
+    my ( $class, $subclass, %opt ) = @_;
+    
+    Carp::croak( "Error before _new_subclass was called: $@" ) if $@;
+    
+    my $new_class = $class . '::' . $subclass;
+    
+    if ( $Business::Shipping::RuntimeLoad )
+        { eval "use $new_class"; }
+        
+    Carp::croak( "Error when trying to use $new_class: \n\t$@" ) if $@;
+    
+    my $new_sub_object = eval "$new_class->new()";
+    Carp::croak( "Failed to create new $new_class object.  Error: $@" ) if $@;
+    
+    return $new_sub_object;    
+}
 
 1;
 
 __END__
+
+=head1 SEE ALSO
+
+Important modules that are related to Business::Shipping:
+
+=over 4
+
+=item * Business::Shipping::DataFiles - Required for offline cost estimation
+
+=item * Business::Shipping::DataTools - Tools that generating DataFiles 
+        (optional)
+
+=back
+
+Other CPAN modules that are simliar to Business::Shipping:
+
+=over 4
+
+=item * Business::Shipping::UPS_XML - Online cost estimation module that has 
+very few prerequisites.  Supports shipments that originate in USA and Canada.
+ 
+=item * Business::UPS - Online cost estimation module that uses the UPS web form
+instead of the UPS Online Tools.  For shipments that originate in the USA only.
+
+=back
+ 
+=head1 SUPPORT
+
+This module is supported by the author.  Please report any bugs or feature 
+requests to C<bug-business-shipping@rt.cpan.org>, or through the web interface 
+at L<http://rt.cpan.org>.  The author will be notified, and then you'll 
+automatically be notified of progress on your bug as the author makes changes.
+
+=head1 KNOWN BUGS
+
+See the TODO file for a comprehensive list of known bugs.
+
+=head1 CREDITS
+
+See CREDITS file. 
 
 =head1 AUTHOR
 

@@ -1,26 +1,22 @@
-package Business::Shipping::USPS_Online::Shipment;
-
 =head1 NAME
 
 Business::Shipping::USPS_Online::Shipment
 
 =head1 VERSION
 
-$Rev: 164 $      $Date: 2004-09-13 17:12:54 -0700 (Mon, 13 Sep 2004) $
+$Rev: 184 $      $Date: 2004-09-16 19:34:19 -0700 (Thu, 16 Sep 2004) $
 
 =head1 DESCRIPTION
 
 See Business::Shipping POD for usage information.
 
-=head1 TODO
-
-Move the country translator data into configuration.
-
-=over 4 METHODS
+=head1 METHODS
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 164 $; $r =~ /\d+/; $&; };
+package Business::Shipping::USPS_Online::Shipment;
+
+$VERSION = do { my $r = q$Rev: 184 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -66,7 +62,7 @@ sub Required
 }
 
 
-=item * from_country
+=head2 from_country
 
 Always returns 'US'.
 
@@ -74,7 +70,7 @@ Always returns 'US'.
 
 sub from_country { return 'US'; }
 
-=item * to_country( $to_country ) 
+=head2 to_country( $to_country ) 
 
 Uses the name translaters of Shipping::Shipment::to_country(), then applies its
 own translations.  The former may not be necessary, but the latter is.
@@ -107,8 +103,6 @@ sub to_country
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 

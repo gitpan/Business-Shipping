@@ -9,17 +9,12 @@ UserTag  ups-query  Routine <<EOR
 # This program is free software; you may redistribute it and/or modify it under
 # the same terms as Perl itself. See LICENSE for more info.
 #
-# $Id: ups-query.tag 160 2004-09-10 03:54:23Z db-ship $
+# $Id: ups-query.tag 184 2004-09-17 02:34:19Z db-ship $
 
 =head1 NAME
 
-[ups-query] usertag (compatiblity layer over [business-shipping]).
+[ups-query] - Interchange usertag for compatiblity (a layer over [business-shipping]).
 
-=head1 AUTHOR 
-
-    Dan Browning <db@kavod.com>
-    http://www.kavodtechnologies.com
-    
 =cut
 
 sub 

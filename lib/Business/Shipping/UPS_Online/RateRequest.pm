@@ -1,4 +1,4 @@
-# $Id: RateRequest.pm 165 2004-09-14 16:20:29Z db-ship $
+# $Id: RateRequest.pm 184 2004-09-17 02:34:19Z db-ship $
 # 
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -81,7 +81,7 @@ UPS_ACCESS_KEY
     
 =cut
 
-$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 184 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -383,7 +383,7 @@ sub _handle_response
         my $combined_error_msg = "$status_description ($status_code): $error @ $err_location"; 
         $combined_error_msg =~ s/\s{3,}/ /g;
         $self->user_error( $combined_error_msg );
-        return ( undef );
+        return;
     }
     
     my $total_charges = $response_tree->{RatedShipment}->{TotalCharges}->{MonetaryValue};

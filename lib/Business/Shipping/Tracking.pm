@@ -1,6 +1,6 @@
 # Business::Shipping::Tracking - Abstract class
 # 
-# $Id: Tracking.pm 165 2004-09-14 16:20:29Z db-ship $
+# $Id: Tracking.pm 169 2004-09-14 19:02:28Z db-ship $
 # 
 # Copyright (c) 2004 Infogears Inc.  All rights reserved.
 # Portions Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights 
@@ -44,7 +44,7 @@ Business::Tracking is an API for tracking shipments
 =cut
 
 
-$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 169 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -54,26 +54,35 @@ use Business::Shipping::Logging;
 use Business::Shipping::Config;
 use Cache::FileCache;
 
-use Business::Shipping::CustomMethodMaker
-  new_hash_init => 'new',
-  boolean => [ 'is_success', 'cache', 'invalid' ],
-  static_hash => ['results'],
-  list => ['tracking_ids'],
-  boolean => [ 'test_mode' ],
-  get_set => [ 'user_id', 'password', 'cache_time' ],
-  grouped_fields_inherit => [
-                 required => [ 'user_id', 'password'],
-                 optional => [ 'prod_url', 'test_url'],
+use Class::MethodMaker 2.0
+    [
+      new    => [ { -hash => 1, -init => 'this_init' }, 'new' ],
+      scalar => [ qw/ is_success cache invalid test_mode user_id password 
+                      cache_time / ],
+      hash   => [ { -static => 1 }, 'results' ],
+      array  => [ 'tracking_ids' ],
+      
+      array  => [ { -type => 'Business::Shipping::Package' }, 'packages' ],
+      scalar => [ { -static => 1, 
+                    -default => 'userid, password' 
+                  },
+                  'Required' 
                 ],
-  object => [
-         'LWP::UserAgent' => {
-                  slot => 'user_agent',
-                 },
-         'HTTP::Response' => {
-                  slot => 'response',
-                 }
-        ];
-
+      scalar => [ { -static => 1, 
+                    -default => 'prod_url, test_url' 
+                  },
+                  'Optional' 
+                ],
+      scalar => [ { -type => 'LWP::UserAgent',
+                    -default_ctor => 'new',
+                  }, 'user_agent'
+                ],
+      scalar => [ { -type => 'HTTP::Response',
+                    -default_ctor => 'new',
+                  }, 'response'
+                ],
+    ];
+    
 
 sub _delete_undefined_keys($) {
   my $hash_ref = shift;
