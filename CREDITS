@@ -9,7 +9,13 @@ contributed.
  * Mike Heins <mike@perusion.com> wrote a complete offline UPS and USPS cost
    estimation system for the Interchange project.  They were adapted for use 
    with Business::Shipping.
-   
+ 
+ * Selena Brewington <computers@chrisking.com> contributed:
+   - The 'Shop' service for UPS_Online that retrieves all the rates in one 
+     request (ver 1.55).
+   - C.O.D. (Cash On Delivery) for UPS_Online (ver 1.55).
+   - Various minor patches.
+ 
  * Kevin Old <kold@carolina.rr.com> got the USPS XML generator working.
  
  * sauoq on PerlMonks.org provided valuable commentary and ideas.

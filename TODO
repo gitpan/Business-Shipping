@@ -2,6 +2,67 @@
 ##  General TODO
 ################################################################################
 
+    * [Enh] Prepare for 2005 Updates
+    
+Atlanta-based United Parcel Services (UPS) said it is increasing both package shipping rates and its fuel surcharge structure effective January 3, 2005.
+    
+The carrier said rates for UPS Ground, UPS Next Day Air, UPS 2nd Day Air, UPS 3 Day Select and U.S. international services will increase 2.9%. UPS Hundredweight Service – what it considers an “alternative” to LTL service – will increase by 5.9%.
+
+Also beginning in January, UPS will reduce the fuel surcharge currently applied to UPS Next Day Air, UPS 2nd Day Air and UPS 3 Day Select and international services by setting a maximum cap of 9.5%. This surcharge will continue to be calculated from an index based on the average price for a gallon of kerosene-type jet fuel.
+
+However, a fuel surcharge of 2% on UPS Ground, UPS Ground Hundredweight and UPS Standard To Canada will be applied that will fluctuate after January based on the Department of Energy’s on-highway diesel price.
+
+Other pricing changes include an increase of $0.25 for the delivery area surcharge on both residential and commercial services to more remote ZIP codes. The residential surcharge will increase $0.10 for UPS Ground services and $0.35 for UPS Next Day Air, UPS 2nd Day Air and UPS 3 Day Select. 
+
+    * [Bug] New 'Ground Residential' service name doesn't work for UPS_Offline:
+      Error: Zone 'u' lookup failed, type 'Ground Residential' not found
+
+    * [Bug] Bundle::Business::Shipping::*
+      - It tries to build and install Business::Shipping before anything else,
+        when that should be the last module that it installs.  If CPAN is set 
+        to install modules that are listed in the makefile, then it will proceed
+        
+    * [Bug] On a clean 5.8.5, trying to install Bundle::Business::Shipping::UPS_Offline
+      results in:
+        - tests that try to load Cache::FileCache:
+          10
+          21
+          22
+        t/10_init    tries to load Cache::FileCache (un-necessary for UPS_Offline).
+        t/21_preload tries to load Cache::FileCache.
+        (because of Business::Shipping::Tracking, perhaps?)
+     
+    * [Enh] Move main documentation into 'Business::Shipping::Manual'
+    
+    * [Enh] Allow a "Company" name to be placed in the results.  So that the user
+      sees "UPS" instead of "UPS_Online".
+
+    * [Enh] Instead of returning a results hash, allow the user to request a results
+      object.  It could overcome the inelegance of dereferencing the AOH.
+      
+    * [Enh] Logging enhancement: allow printf() style message passing arguments
+      so that if a value is undefined, there will not be an error.
+    
+    * Clean and apply 'shop rates' patch by selena brewington <computers@chrisking.com>
+    
+    * UPS Tracking Numbers appear in the following formats:
+       1Z 999 999 99 9999 999 9
+       9999 9999 999 9
+       T999 9999 999 
+
+    * USPS tracking formats:
+      - http://hdusps.esecurecare.net/cgi-bin/hdusps.cfg/php/enduser/std_adp.php?p_faqid=1125&p_created=1052781743&p_sid=LjOKtaqh&p_lva=&p_sp=cF9zcmNoPSZwX3NvcnRfYnk9JnBfZ3JpZHNvcnQ9JnBfcm93X2NudD0zNiZwX3Byb2RfbHZsMT01MSZwX3Byb2RfbHZsMj0mcF9wYWdlPTE*&p_li=
+       
+    * [Bug] http://ppm.activestate.com/BuildStatus/5.6plus/solaris/Business-Shipping-1.54.txt
+    
+    * [Bug] http://ppm.activestate.com/BuildStatus/5.8-hpux/hpux-pa-risc-5.8/Business-Shipping-1.54.txt
+    
+    * [Enh] Switch to Config::General
+    
+    * [Enh] Evaluate OODoc
+    
+    * Build up Business::Shipping::DataTools
+
     * [Enh] Country Support
       - Which origin countries do UPS_Online and UPS_Offline support?
     
@@ -179,7 +240,9 @@
        when using USPS_Online:
        + Business::Shipping::USPS_Online::RateRequest::_handle_response: ()
          File does not exist:  at .../USPS_Online/RateRequest.pm ...
-
+	 
+   * [Enh] Printable labels
+   
 ################################################################################
 ##  UPS_Offline TODO
 ################################################################################
@@ -213,10 +276,6 @@
    An alternate set of data is available for people who don't have an account 
    with UPS.  Is the only difference a $4.00 surcharge?
 
- * [Enh] Determine the upcoming fuel surcharge changes from UPS website, then 
-   check to see if that date has passed.  If so, automatically update the fuel 
-   surcharge.
-
  * [Enh] From Canada to Alaska (and other destinations)
                 99663 = Seldovia, Alaska
 		my $rate_request = Business::Shipping->rate_request(
@@ -233,8 +292,6 @@
                        access_key       => 'XXXXXX',
                );
 				
- * [Enh] Confirm that the auto-update feature works well.
- 
  * [Enh] Performance enhancement: instead of transforming the data with
    calc_zone_data() everytime, just re-write the data file.
  
@@ -267,7 +324,8 @@
 
         zone table:
 		
- 	zone_from_exactly	zone_from_lt	zone_from_gt	zip_to_exactly	zip_to_lt	zip_to_gt	service
+ 	zone_from_exactly	zone_from_lt	zone_from_gt	zip_to_exactly
+	zip_to_lt	zip_to_gt	service
 	
         weight table:
 	
@@ -297,6 +355,7 @@
     * [Enh] UPS support for sending multiple simultaneous requests
       - (USPS had built-in support in the API for Intl)
       - If they don't support it, try LWP::Parallel::UserAgent.
+      - Selena Brewington: better yet, use "Rate Shopping"
  
     * [Enh] Implement a multi-package API for UPS.   
       Move to a different XML generation scheme, since all the packages 
@@ -322,6 +381,7 @@
 
     * FedEx
       - http://www.fedex.com/us/solutions/wis/index.html/
+      - http://www.synesmedia.com/twiki/bin/view/Cyc/FedExShipManager      
       - [Enh] FedEx module: Christopher L Wenham from Synesmedia has created an 
         Interchange usertag that uses FedEx::DirectConnect for various functions.
       - [Enh] Francois Belanger, francois@sitepak.com has also created a FedEx 
@@ -348,3 +408,6 @@
 ##  General Ideas
 ################################################################################
 
+    * Other software:
+    * Cold Fushion: UPSRateMonger by Matt Robertson (http://www.mysecretbase.com)
+    * Cold Fushion: FedExMonger by Matt Robertson (http://www.mysecretbase.com)

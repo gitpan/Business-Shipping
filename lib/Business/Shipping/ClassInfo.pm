@@ -6,7 +6,7 @@ Business::Shipping::ClassInfo - ClassAttribs helper functions
 
 =head1 VERSION
 
-$Rev: 190 $
+$Rev: 200 $
 
 =head1 METHODS
 
@@ -14,12 +14,10 @@ $Rev: 190 $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 200 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
-use Scalar::Util 'blessed';
-use Business::Shipping::Util;
 use Business::Shipping::Logging;
 
 use Class::MethodMaker 2.0 [ new => [ { -init => 'this_init' }, 'new' ] ];

@@ -19,7 +19,7 @@ Business::Shipping::UPS_Offline::RateRequest
 
 =head1 VERSION
 
-$Rev: 190 $
+$Rev: 200 $
 
 =head1 GLOSSARY
 
@@ -33,11 +33,9 @@ $Rev: 190 $
 
 =head1 METHODS
 
-=over 4
-
 =cut
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 200 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -49,28 +47,27 @@ use Business::Shipping::Data;
 use Business::Shipping::Util;
 use Business::Shipping::Config;
 use Data::Dumper;
-use POSIX;
+use POSIX ( 'ceil' );
 use Fcntl ':flock';
 use File::Find;
 use File::Copy;
 use Math::BaseCnv;
-use Scalar::Util 1.10;
 
-=item * update
+=head2 update
 
-=item * download
+=head2 download
 
-=item * unzip
+=head2 unzip
 
-=item * convert
+=head2 convert
 
-=item * is_from_west_coast
+=head2 is_from_west_coast
 
-=item * is_from_east_coast
+=head2 is_from_east_coast
 
-=item * to_residential
+=head2 to_residential
 
-=item * Zones
+=head2 Zones
 
 Hash.  Format:
 
@@ -85,9 +82,9 @@ Hash.  Format:
         }
     )
 
-=item * zone_file
+=head2 zone_file
 
-=item * zone_name
+=head2 zone_name
 
   - For International, it's the name of the country (e.g. 'Canada')
   - For Domestic, it is the first three of a zip (e.g. '986')
@@ -113,7 +110,6 @@ use Class::MethodMaker 2.0
       scalar => [ { -type    => 'Business::Shipping::UPS_Offline::Shipment',
                     -default_ctor => 'new',
                     -forward => [ 
-                                    'service', 
                                     'from_country',
                                     'from_country_abbrev',
                                     'to_country',
@@ -153,12 +149,12 @@ sub _this_init
 sub to_residential { return shift->shipment->to_residential( @_ ); }
 sub is_from_east_coast { return not shift->is_from_west_coast(); }
 
-=item * convert_ups_rate_file
+=head2 convert_ups_rate_file
 
 =cut
 
 
-=item * validate
+=head2 validate
 
 =cut
 
@@ -168,29 +164,32 @@ sub validate
     trace '()';
     
     return if ( ! $self->SUPER::validate );
-    if ( $self->service and $self->service eq 'GNDRES' and $self->to_ak_or_hi ) {
-        $self->user_error( "Invalid Rate Request: Ground Residential to AK or HI." );
-        $self->invalid( 1 );
-        return 0;
+    
+    if ( $self->service_nick ) {
+        if ( $self->service_nick eq 'GNDRES' and $self->to_ak_or_hi ) {
+            $self->user_error( "Invalid Rate Request: Ground Residential to AK or HI." );
+            $self->invalid( 1 );
+            return 0;
+        }
+        
+        if ( $self->service_nick eq 'UPSSTD' and not $self->to_canada ) {
+            $self->user_error( "UPS Standard service is available to Canada only." );
+            $self->invalid( 1 );
+            return 0;
+        }
     }
     
-    if ( $self->service eq 'UPSSTD' and not $self->to_canada ) {
-        $self->user_error( "UPS Standard service is available to Canada only." );
-        $self->invalid( 1 );
-        return 0;
-    }
-    
-    if ( $self->to_canada and $self->to_zip =~ /\d\d\d\d\d/ ) {
+    if ( $self->to_canada and $self->to_zip and $self->to_zip =~ /\d\d\d\d\d/ ) {
         $self->user_error( "Cannot use US-style zip codes when sending to Canada" );
         $self->invalid( 1 );
         return 0;
     }
-    
+
     return 1;
 }
 
-=item * _handle_response
-
+=head2 _handle_response
+    
 =cut
 
 sub _handle_response
@@ -202,7 +201,6 @@ sub _handle_response
         $out .= "$_ = " . $self->$_();
     }
     #error( $out );
-    
     
     my $total_charges;
     $self->calc_zone_data();
@@ -267,29 +265,25 @@ sub _handle_response
         $self->_total_charges 
     );
     
-    # 'return' method:
-    # 1. Save a "results" hash.
-    #
-    # TODO: multi-package support: loop over the packages
-
-    my $packages = [
-        { 
-            #description
-            #package_id
-            'charges' => $total_charges, 
-        },
+    my $results = [
+        {
+            name  => $self->shipper(), 
+            rates => [
+                {
+                    charges   => $total_charges,
+                    charges_formatted => Business::Shipping::Util::currency( {}, $total_charges ),
+                },
+            ]
+        }
     ];
     
-    my $results = {
-        $self->shipper() => $packages
-    };
     #debug3 'results = ' . uneval( $results );
     $self->results( $results );
     
     return $self->is_success( 1 );
 }
 
-=item * $self->_increase_total_charges( $amount )
+=head2 $self->_increase_total_charges( $amount )
 
 Increase the _total_charges by an amount.
 
@@ -304,7 +298,7 @@ sub _increase_total_charges
     return;
 }
 
-=item * calc_express_plus_adder
+=head2 calc_express_plus_adder
 
 =cut
 
@@ -313,7 +307,7 @@ sub calc_express_plus_adder
 
     my ( $self ) = @_;
     
-    if ( $self->service_code_to_ups_name( $self->service ) =~ /plus/i ) {
+    if ( $self->service_name =~ /plus/i ) {
          return cfg()->{ ups_information }->{ express_plus_adder } || 40.00 
     }
     
@@ -321,7 +315,7 @@ sub calc_express_plus_adder
 }
 
 
-=item * calc_delivery_area_surcharge
+=head2 calc_delivery_area_surcharge
 
 The "Delivery Area Surcharge" is also known as "Extended Area Surcharge", but 
 does not include special residential charges that apply to some services (air
@@ -346,7 +340,7 @@ sub calc_delivery_area_surcharge
     return 0.00;
 }
 
-=item * $self->calc_residential_surcharge()
+=head2 $self->calc_residential_surcharge()
 
 Note that this is different than the delivery area surcharge
 sub calc_residential_surcharge.  It is listed as "Residential Differential"
@@ -365,19 +359,19 @@ sub calc_residential_surcharge
     # TODO: Residential surcharge: confirm that all the right services are 
     # included/excluded
 
-    my $ups_service_name = $self->service_code_to_ups_name( $self->service );
+    my $ups_service_name = $self->service_name;
     my @exempt_services = qw/
-        UPS Ground Commercial
-        UPS Ground Residential
-        UPS Ground Hundredweight Service
-        UPS Standard
+        Ground Commercial
+        Ground Residential
+        Ground Hundredweight Service
+        Standard
     /;    
     
     return 1.40 if $self->to_residential;
     return 0;
 }
     
-=item * calc_fuel_surcharge
+=head2 calc_fuel_surcharge
 
 =cut
 
@@ -388,25 +382,30 @@ sub calc_fuel_surcharge
     # http://www.ups.com/content/us/en/resources/find/cost/fuel_surcharge.html
     # The surcharge applies to all domestic and International transportation 
     # charges except UPS Ground Commercial, UPS Ground Residential, UPS Ground
-    # Hundredweight Service®, and UPS Standard to Canada.
+    # Hundredweight Service, and UPS Standard to Canada.
     
-    my $ups_service_name = $self->service_code_to_ups_name( $self->service );
+    my $ups_service_name = $self->service_name;
     my @exempt_services = qw/
-        GNDRES
-        GNDCOM
-        UPSSTD
-        Ground
-        UPS Ground Commercial
-        UPS Ground Residential
-        UPS Ground Hundredweight Service
-        UPS Standard
+        Ground Commercial
+        Ground Residential
+        Ground Hundredweight Service
+        Standard
     /;
     return 0 if grep /$ups_service_name/i, @exempt_services;
     
-    my $fuel_surcharge = cfg()->{ ups_information }->{ fuel_surcharge } || do { 
-        $self->user_error( "fuel surcharge rate not found" ); 
-        return 0; 
-    };
+    my $fuel_surcharge_filename = Business::Shipping::Config::support_files 
+    . '/config/fuel_surcharge.txt';
+    
+    my $fuel_surcharge_contents = readfile( $fuel_surcharge_filename );
+    
+    my ( $line1 ) = split( "\n", $fuel_surcharge_contents );
+    my ( undef, $fuel_surcharge ) = split( ': ', $line1 );
+    
+    # Old method of calculating fuel surcharge:
+    #my $fuel_surcharge = cfg()->{ ups_information }->{ fuel_surcharge } || do { 
+    #    $self->user_error( "fuel surcharge rate not found" ); 
+    #    return 0; 
+    #};
     
     $fuel_surcharge =~ s/\%//;
     $fuel_surcharge *= .01;
@@ -415,35 +414,7 @@ sub calc_fuel_surcharge
     return $fuel_surcharge;
 }
 
-=item * service_code_to_ups_name
-
-=cut
-
-sub service_code_to_ups_name
-{
-    my ( $self, $service ) = @_;
-    
-    if ( ! $service ) {
-        $self->user_error( "Need service parameter." );
-        return;
-    }
-    #
-    # These are the names at the top of the zone file.
-    #
-    
-    my $translate_map = cfg()->{ service_codes_to_ups_names_in_zone_file };
-    
-    debug3( "translate_map = " . Dumper( $translate_map ) );
-        
-    if ( $translate_map->{ $service } ) {
-        return $translate_map->{ $service };
-    }
-    else {
-        return $service;
-    }
-}
-
-=item * ups_name_to_table
+=head2 ups_name_to_table
 
 =cut
 
@@ -470,7 +441,7 @@ sub ups_name_to_table
     }
 }
 
-=item * calc_zone_data()
+=head2 calc_zone_data()
 
 * Modifies the class attribute Zones(), and adds data for the zone like so...
 
@@ -527,7 +498,7 @@ sub calc_zone_data
     for ( keys %{ $self->Zones } ) {
         my $this_zone = $self->Zones->{ $_ };
         if ( ! $this_zone->{ zone_data } ) {
-            $this_zone->{ zone_data } = Business::Shipping::Util::readfile( $self->zone_file() );
+            $this_zone->{ zone_data } = Business::Shipping::UPS_Offline::RateRequest::readfile( $self->zone_file() );
         }
         if ( ! $this_zone->{ zone_data } ) {
             $self->user_error( "Bad shipping file for zone " . $_ . ", lookup disabled." );
@@ -599,7 +570,7 @@ sub calc_zone_data
     return;
 }
 
-=item * determine_keys()
+=head2 determine_keys()
 
 Decides what unique keys will be used to locate the zone record.  
 
@@ -646,7 +617,7 @@ sub determine_keys
     return ( $key, $raw_key );
 }
 
-=item * rate_table_exceptions
+=head2 rate_table_exceptions
 
 WorldWide methods use different tables for Canada
 
@@ -665,7 +636,7 @@ sub rate_table_exceptions
     
     if ( $exceptions_hash->{ $type } ) {
         $table = $exceptions_hash->{ $type };
-        debug( "table exception found: $table" );
+        debug3( "table exception found: $table" );
     }
     else {
         debug3( "No table exception found.  Returning regular table $table" );
@@ -674,7 +645,7 @@ sub rate_table_exceptions
     return $table;
 }
 
-=item * calc_cost( )
+=head2 calc_cost( )
 
 * Modifies the class attribute $Zones, and adds data for the zone like so...
 
@@ -694,16 +665,20 @@ sub calc_cost
 {
     my ( $self ) = @_;
     
-    if ( ! $self->zone_name or ! $self->service ) {
-        $self->user_error( "Need zone_name and service" );
+    if ( ! $self->zone_name ) {
+        $self->user_error( "Need zone_name" );
+        return;
+    }
+    if ( ! $self->shipment->service_nick2 ) {
+        $self->user_error( "Need service" );
         return;
     }
     
     my $zone_name = $self->zone_name;
     my $zref      = $self->Zones->{ $zone_name };
-    my $type      = $self->service_code_to_ups_name( $self->service() );
+    my $type      = $self->shipment->service_nick2;
     my $table     = $self->ups_name_to_table(        $type            );
-    $table        = $self->rate_table_exceptions(    $type, $table    );
+    $table        = $self->rate_table_exceptions(    $self->shipment->service_nick, $table    );
     
     
     my ( $key, $raw_key ) = $self->determine_keys; 
@@ -865,7 +840,7 @@ sub calc_cost
     return $cost || 0;
 }
 
-=item * special_zone_hi_ak( $type )
+=head2 special_zone_hi_ak( $type )
 
  $type    Type of service.
  
@@ -886,12 +861,8 @@ sub special_zone_hi_ak
     my @ak_special_zipcodes_126_226 = split( ',', ( cfg()->{ups_information}->{ak_special_zipcodes_126_226} or '' ) );
     debug3( "zip=" . $self->to_zip . ".  Hawaii special zip codes = " . join( ",\t", @hi_special_zipcodes_124_224 ) );
 
-    if ( 
-            element_in_array( $self->to_zip(), @hi_special_zipcodes_124_224 )
-        or
-            element_in_array( $self->to_zip(), @ak_special_zipcodes_124_224 )
-        ) 
-    {
+    my $to_zip = $self->to_zip;
+    if ( grep( /^$to_zip$/, @hi_special_zipcodes_124_224, @ak_special_zipcodes_124_224 ) ) {
         if ( $type eq 'NextDayAir' ) {
             $zone = '124';
         }
@@ -899,12 +870,7 @@ sub special_zone_hi_ak
             $zone = '224';
         }
     }
-    if ( 
-            element_in_array( $self->to_zip(), @hi_special_zipcodes_126_226 )
-        or
-            element_in_array( $self->to_zip(), @ak_special_zipcodes_126_226 )
-        ) 
-    {
+    if ( grep( /^$to_zip$/, @hi_special_zipcodes_126_226, @ak_special_zipcodes_126_226 ) ) {
         if ( $type eq 'NextDayAir' ) {
             $zone = '126';
         }
@@ -916,7 +882,7 @@ sub special_zone_hi_ak
     return $zone;
 }
 
-=item * calc_zone_info()
+=head2 calc_zone_info()
 
 Determines which zone (zone_name), and which zone file to use for lookup.
 
@@ -945,7 +911,7 @@ sub calc_zone_info
         debug( "to canada" );
         $zone = $self->make_three( $self->to_zip );
         
-        if ( $self->service =~ /UPSSTD/i ) {
+        if ( $self->service_nick eq 'UPSSTD' ) {
             #
             # TODO: Build a list of state names => "UPS Standard zone file names"
             # 
@@ -992,7 +958,7 @@ sub calc_zone_info
     #
     # Only apply if the zone is purly numeric.
 
-    if ( Scalar::Util::looks_like_number( $zone ) ) {
+    if ( Business::Shipping::Util::looks_like_number( $zone ) ) {
         for ( my $c = 10; $c >= 1; $c-- ) {
             if ( ! -f $zone_file ) {
                 debug( "zone_file $zone_file doesn't exist, trying others nearby..." );
@@ -1009,7 +975,7 @@ sub calc_zone_info
     return;
 }
 
-=item * determine_coast
+=head2 determine_coast
 
 If this is an international order, we need to determine which state the shipper
 is in, then if it is east or west coast.  If west, then use the first "Express" field
@@ -1021,20 +987,18 @@ sub determine_coast
 {
     my ( $self ) = @_;
     
-    #
-    #
     if ( $self->intl() and $self->from_state() ) {
         
-        my $west_coast_states_aryref = cfg()->{ ups_information }->{ west_coast_states };
-        my $east_coast_states_aryref = cfg()->{ ups_information }->{ east_coast_states };
+        my @west_coast_states_abbrev = split( ',', cfg()->{ ups_information }->{ west_coast_states } );
+        my @east_coast_states_abbrev = split( ',', cfg()->{ ups_information }->{ east_coast_states } );
         
-        for ( @$west_coast_states_aryref ) {
-            if ( $_ eq $self->from_state() ) {
+        for ( @west_coast_states_abbrev ) {
+            if ( $_ eq $self->from_state_abbrev() ) {
                 $self->is_from_west_coast( 1 );
             }
         }
-        for ( @$east_coast_states_aryref ) {
-            if ( $_ eq $self->from_state() ) {
+        for ( @east_coast_states_abbrev ) {
+            if ( $_ eq $self->from_state_abbrev() ) {
                 $self->is_from_west_coast( 0 );
             }
         }
@@ -1043,9 +1007,51 @@ sub determine_coast
     return;
 }
 
-    
+=head2 * readfile( $file )
 
-=item * _massage_values()
+Note: this is not an object-oriented method.
+
+=cut
+
+sub readfile
+{
+    my ( $file ) = @_;
+    
+    return undef unless open( READIN, "< $file" );
+    
+    # TODO: Use English;
+    
+    undef $/;
+    
+    my $contents = <READIN>;
+    close( READIN );
+    
+    return $contents;
+}
+
+=head2 * writefile( $filename, $filecontents )
+
+Note: this is not an object-oriented method.
+
+=cut
+
+sub writefile
+{
+    my ( $filename, $contents ) = @_;
+    
+    return unless open( OUT, "> $filename" );
+    
+    # TODO: Use English;
+    
+    undef $/;
+    
+    print OUT $contents;
+    
+    return $contents;
+}
+
+
+=head2 _massage_values()
 
 Performs some final value modification just before the submit.
 
@@ -1056,8 +1062,8 @@ sub _massage_values
     my ( $self ) = @_;
     trace '()';
 
-    # In order to share the Shipment::UPS object between both Online::UPS and
-    # Offline::UPS, we do a little magic.  If it gets more complex than this,
+    # In order to share the Shipment::UPS object between both UPS_Online and
+    # UPS_Offline, we do a little magic.  If it gets more complex than this,
     # subclass it instead.
 
     $self->shipment->offline( 1 );
@@ -1074,8 +1080,6 @@ sub _massage_values
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 

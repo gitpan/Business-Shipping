@@ -4,22 +4,20 @@ Business::Shipping::Util - Miscellaneous functions
 
 =head1 VERSION
 
-$Rev: 190 $
+$Rev: 200 $
 
 =head1 DESCRIPTION
 
-Many file-related functions, some others.
+Misc functions, some others.
 
 =head1 METHODS
-
-=over 4
 
 =cut
 
 package Business::Shipping::Util;
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
-@EXPORT  = ( 'element_in_array' );
+$VERSION = do { my $r = q$Rev: 200 $; $r =~ /\d+/; $&; };
+@EXPORT_OK = qw( looks_like_number unique );
 
 use strict;
 use warnings;
@@ -32,36 +30,10 @@ use File::Copy;
 use Fcntl ':flock';
 use English;
 
-=item * download_to_file( $url, $file )
-
-=cut
-
-sub download_to_file
-{
-    my ( $url, $file ) = @_;
-    trace "( $url, $file )";
-    
-    return unless $url and $file;
-    
-    eval {
-        use LWP::UserAgent;
-        my $ua = LWP::UserAgent->new;
-        my $req = HTTP::Request->new(GET => $url);
-        open( NEW_ZONE_FILE, "> $file" );
-        print( NEW_ZONE_FILE $ua->request($req)->content() );        
-        close( NEW_ZONE_FILE );
-    };
-    warn $@ if $@;
-    
-    return;
-}
-
-=item * currency( $opt, $amount )
+=head2 * currency( $opt, $amount )
 
 Formats a number for display as currency in the current locale (currently, the
 only locale supported is USD).
-
-Analagous to $Tag->currency() in Interchange.
 
 =cut
 
@@ -76,215 +48,7 @@ sub currency
     return $amount;
 }
 
-=item * _unzip_file( $zipName, $destination_directory )
-
-=cut
-
-# Extracts all files from the given zip
-
-=pod
-
-sub _unzip_file
-{
-    my ( $zipName, $destination_directory ) = @_;
-    $destination_directory ||= './';
-    
-    use Archive::Zip qw(:ERROR_CODES);
-
-    my $zip = Archive::Zip->new();
-    my $status = $zip->read( $zipName );
-    if ( $status != AZ_OK )  {
-        my $error = "Read of $zipName failed";
-        #$self->user_error( $error );
-        logdie $error;
-    }
-    if ( $@ ) { logdie "_unzip_file error: $@"; }
-    
-    $zip->extractTree( '', $destination_directory );
-    
-    return;
-}
-
-=cut
-
-=item * filename_only( $path )
-
-=cut
-
-sub filename_only
-{
-    trace "( $_[0] )";
-    my $filename_with_extension = $_[0];
-    
-    my $filename_only = $filename_with_extension; 
-    $filename_only =~ s/\..+$//;
-    
-    return $filename_only;
-}
-
-=item * split_dir_file( $path )
-
-=cut
-
-# Return ( directory_path, file_name ) from any path.
-# TODO: Use correct File:: Module, and be Windows-compatible
-
-sub split_dir_file
-{
-    my $path = shift;
-    
-    my @path_components = split( '/', $path );
-    my $file = pop @path_components;
-    my $dir = join( '/', @path_components );
-    return ( $dir, $file ); 
-}
-
-=item * remove_extension( $file )
-
-=cut
-
-sub remove_extension
-{
-    my $file = shift;
-    trace "( $file )";
-    
-    my $filename_only = filename_only( $file );
-    rename( $file, $filename_only );
-    
-    return $filename_only;
-}
-
-=item * remove_elements_of_x_that_are_in_y( $x, $y )
-
-=cut
-
-sub remove_elements_of_x_that_are_in_y
-{
-    my ( $x, $y ) = @_;
-    
-    my @new_x;
-    foreach my $x_item ( @$x ) {
-        my $match = 0;
-        foreach my $y_item ( @$y ) {
-            if ( $x_item eq $y_item ) {
-                $match = 1;
-            }
-        }
-        if ( ! $match ) {
-            push @new_x, $x_item;
-        }
-        else {
-            debug3( "removing $x_item" );
-        }
-    }
-    
-    return @new_x;
-}
-
-=item * remove_windows_carriage_returns( $path )
-
-=cut
-
-# TODO: Windows compat: call binmode() if Windows.
-
-sub remove_windows_carriage_returns
-{
-    my $file = shift;
-    trace "( $file )";
-    
-    open(    IN,        $file      );
-    flock(   IN,        LOCK_EX    );
-    
-    open(    OUT,       ">$file.1" );
-    flock(   OUT,       LOCK_EX    );
-
-    # read it all in at once.
-
-    undef $/;
-    my $contents = <IN>;
-    $contents =~ s/\r\n/\n/g;
-    print OUT $contents;
-    
-    flock(  IN,        LOCK_UN     );
-    close(  IN                     );
-    flock(  OUT,       LOCK_UN     );
-    close(  OUT                    );
-    copy(   "$file.1", $file       );
-    unlink( "$file.1"              );
-    
-
-    # return to normal line endings.
-    # TODO: Use English;
-
-    $/ = "\n";
-    return;
-}
-
-=item * readfile( $file )
-
-=cut
-
-sub readfile
-{
-    my ( $file ) = @_;
-    
-    return undef unless open( READIN, "< $file" );
-    
-    # TODO: Use English;
-    
-    undef $/;
-    
-    my $contents = <READIN>;
-    close( READIN );
-    
-    return $contents;
-}
-
-=item * element_in_array( $element, @array )
-
-=cut
-
-sub element_in_array
-{
-    my ( $e, @a ) = @_;
-    return unless $e and @a;
-    
-    for ( @a ) {
-        return 1 if $_ eq $e;
-    }
-    
-    return 0;
-}
-
-=item * get_fh( $filename )
-
-=cut
-
-sub get_fh
-{
-    my ( $filename ) = @_;
-
-    my $file_handle;
-    open $file_handle, "$filename" 
-        || carp "could not open file: $filename.  Error: $!";
-    
-    return $file_handle;
-}
-
-=item * close_fh( $file_handle )
-
-=cut
-
-sub close_fh
-{
-    my ( $file_handle ) = @_;
-    
-    close $file_handle;
-    
-    return;
-}
-
-=item * unique( @ary )
+=head2 * unique( @ary )
 
 Removes duplicates (but leaves at least one).
 
@@ -303,11 +67,27 @@ sub unique
     return @unique;
 }
 
+=head2 * looks_like_number( $scalar )
+
+Shamelessly stolen from Scalar::Util 1.10 in order to reduce dependancies.
+
+=cut
+
+sub looks_like_number {
+  local $_ = shift;
+
+  # checks from perlfaq4
+  return $] < 5.009002 unless defined;
+  return 1 if (/^[+-]?\d+$/); # is a +/- integer
+  return 1 if (/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/); # a C float
+  return 1 if ($] >= 5.008 and /^(Inf(inity)?|NaN)$/i) or ($] >= 5.006001 and /^Inf$/i);
+
+  0;
+}
+
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 

@@ -10,8 +10,6 @@ $Rev: 158 $      $Date: 2004-09-09 15:58:17 -0700 (Thu, 09 Sep 2004) $
 
 =head1 METHODS
 
-=over 4
-
 =cut
 
 $VERSION = do { my $r = q$Rev: 158 $; $r =~ /\d+/; $&; };
@@ -20,19 +18,20 @@ use strict;
 use warnings;
 use base( 'Business::Shipping::Shipment::UPS' );
 use Business::Shipping::Config;
+use Business::Shipping::Logging;
 
 use Class::MethodMaker 2.0
     [ 
       new    => 'new',
+      scalar => [ 'cod', 'cod_funds_code', 'cod_value' ],
       array  => [ { -type => 'Business::Shipping::UPS_Online::Package',
                     -default_ctor => 'new', }, 'packages' ],      
     ];
 
+
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 

@@ -1,6 +1,6 @@
 # Business::Shipping - Rates and tracking for UPS and USPS
 #
-# $Id: Shipping.pm 189 2004-09-19 04:16:10Z db-ship $
+# $Id: Shipping.pm 200 2004-11-23 07:56:10Z db-ship $
 #
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -14,11 +14,11 @@ Business::Shipping - Rates and tracking for UPS and USPS
 
 =head1 VERSION
 
-Version 1.54
+Version 1.55
 
 =cut
 
-$VERSION = '1.54';
+$VERSION = '1.55';
 
 =head1 SYNOPSIS
 
@@ -27,7 +27,7 @@ $VERSION = '1.54';
  use Business::Shipping;
  
  my $rate_request = Business::Shipping->rate_request(
-     shipper   => 'Offline::UPS',
+     shipper   => 'UPS_Offline',
      service   => 'GNDRES',
      from_zip  => '98682',
      to_zip    => '98270',
@@ -49,6 +49,53 @@ Business::Shipping currently supports three shippers:
 =item * Shipment rate estimation using UPS Online WebTools.
 
 =item * Shipment tracking.
+
+=item * Rate Shopping.
+
+Gets rates for all the services in one request:
+
+ my $rr_shop = Business::Shipping->rate_request( 
+     service      => 'shop',    
+     shipper      => 'UPS_Online',
+     from_zip     => '98682',
+     to_zip       => '98270',
+     weight       => 5.00,
+     user_id      => $ENV{ UPS_USER_ID },
+     password     => $ENV{ UPS_PASSWORD },
+     access_key   => $ENV{ UPS_ACCESS_KEY }
+ );
+ 
+ $rr_shop->go() or die $rr_shop->user_error();
+ 
+ foreach my $shipper ( @$results ) {
+     print "Shipper: $shipper->{name}\n\n";
+     foreach my $rate ( @{ $shipper->{ rates } } ) {
+         print "  Service:  $rate->{name}\n";
+         print "  Charges:  $rate->{charges_formatted}\n";
+         print "  Delivery: $rate->{deliv_date_formatted}\n" 
+             if $rate->{ deliv_date_formatted };
+         print "\n";
+     }
+ }
+
+=item * C.O.D. (Cash On Delivery)
+
+#DeliveryConfirmation and COD cannot coexist on a single Pakcage (DeliveryConfirmation is not yet implemented in Business::Shiping).
+#cod_code: The code associated with the type of COD.  Values: 1 = Regular COD, 2 = Express COD, 3 = Tagless COD
+
+Add these options to your rate request for C.O.D.:
+
+cod: enable C.O.D.
+
+cod_funds_code:  The code that indicates the type of funds that will be used for the COD payment.  Required if CODCode is 1, 2, or 3.  Valid Values: 0 = All Funds Allowed.  8 = cashier's check or money order, no cash allowed.
+
+cod_value: The COD value for the package.  Required if COD option is present.  Valid values: 0.01 - 50000.00
+ 
+For example:
+
+	cod            => 1,
+	cod_value      => 400.00,
+	cod_funds_code => 0,
 
 =back
 
@@ -91,7 +138,7 @@ file for more information.
  Log::Log4perl (any)
  LWP::UserAgent (any)
  Math::BaseCnv (any)
- Scalar::Util (1.10)
+ Scalar::Util (any)
  XML::DOM (any)
  XML::Simple (2.05)
 
@@ -102,7 +149,13 @@ provider that you will use.
 
 =head2 UPS_Offline: For United Parcel Service (UPS) offline rate requests
 
-No signup required.  C<Business::Shipping::DataFiles> has all of rate tables.
+No signup required.  C<Business::Shipping::DataFiles> has all of rate tables, 
+which are usually updated only once per year.
+
+We recommend that you run the following program to update your fuel surcharge
+every first monday of the month.
+
+ Business-Shipping-UPS_Offline-update-fuel-surcharge.pl
 
 =head2 UPS_Online: For United Parcel Service (UPS) Online XML: Free signup
 
@@ -180,6 +233,7 @@ use strict;
 use warnings;
 use Carp;
 use Business::Shipping::Logging;
+use Business::Shipping::Util 'unique';
 use Business::Shipping::ClassAttribs;
 use Class::MethodMaker 2.0
     [ 
@@ -356,7 +410,7 @@ The origin zipcode.
 
 =item * from_state
 
-The origin state in two-letter code format or full-name format.  Required for Offline::UPS.
+The origin state in two-letter code format or full-name format.  Required for UPS_Offline.
 
 =item * to_zip
 
@@ -378,13 +432,13 @@ There are some additional common values:
 
 =item * user_id
 
-A user_id, if required by the provider. Online::USPS and Online::UPS require
-this, while Offline::UPS does not.
+A user_id, if required by the provider. USPS_Online and UPS_Online require
+this, while UPS_Offline does not.
 
 =item * password
 
-A password,  if required by the provider. Online::USPS and Online::UPS require
-this, while Offline::UPS does not.
+A password,  if required by the provider. USPS_Online and UPS_Online require
+this, while UPS_Offline does not.
 
 =back
 
@@ -435,6 +489,34 @@ Takes a scalar that can be 'debug', 'info', 'warn', 'error', or 'fatal'.
 
 *log_level = *Business::Shipping::Logging::log_level;
 
+=head2 Business::Shipping->_new_subclass()
+
+Private Method.
+
+Generates an object of a given subclass dynamically.  Will dynamically 'use' 
+the corresponding module, unless runtime module loading has been disabled via 
+the 'preload' option.
+
+=cut
+
+sub _new_subclass
+{
+    my ( $class, $subclass, %opt ) = @_;
+    
+    Carp::croak( "Error before _new_subclass was called: $@" ) if $@;
+    
+    my $new_class = $class . '::' . $subclass;
+    
+    if ( $Business::Shipping::RuntimeLoad )
+        { eval "use $new_class"; }
+        
+    Carp::croak( "Error when trying to use $new_class: \n\t$@" ) if $@;
+    
+    my $new_sub_object = eval "$new_class->new()";
+    Carp::croak( "Failed to create new $new_class object.  Error: $@" ) if $@;
+    
+    return $new_sub_object;    
+}
 
 # COMPAT: event_handlers()
 
@@ -470,35 +552,6 @@ sub event_handlers
     }
     
     return;
-}
-
-=head2 Business::Shipping->_new_subclass()
-
-Private Method.
-
-Generates an object of a given subclass dynamically.  Will dynamically 'use' 
-the corresponding module, unless runtime module loading has been disabled via 
-the 'preload' option.
-
-=cut
-
-sub _new_subclass
-{
-    my ( $class, $subclass, %opt ) = @_;
-    
-    Carp::croak( "Error before _new_subclass was called: $@" ) if $@;
-    
-    my $new_class = $class . '::' . $subclass;
-    
-    if ( $Business::Shipping::RuntimeLoad )
-        { eval "use $new_class"; }
-        
-    Carp::croak( "Error when trying to use $new_class: \n\t$@" ) if $@;
-    
-    my $new_sub_object = eval "$new_class->new()";
-    Carp::croak( "Failed to create new $new_class object.  Error: $@" ) if $@;
-    
-    return $new_sub_object;    
 }
 
 1;
@@ -540,8 +593,7 @@ author and/or on their website or in their application.
 =item * Interchange e-commerce system ( L<http://www.icdevgroup.org> ).  See 
     C<UserTag/business-shipping.tag>.
 
-=item * The paymentonline.com mod_perl/template 
-    toolkit system.
+=item * The paymentonline.com mod_perl/template toolkit system.
 
 =item * The "Shopping Cart" Wobject for the WebGUI project, by Andy Grundman 
     <andy@kahncentral.net>.

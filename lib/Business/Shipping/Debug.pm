@@ -6,7 +6,7 @@ Business::Shipping::Debug - For backwards compatibility only
 
 =head1 VERSION
 
-$Rev: 190 $
+$Rev: 193 $
 
 =head1 SYNOPSIS
 
@@ -23,7 +23,7 @@ Note that this module has been depreciated.  Business::Shipping::Logging is the
 correct module to use now.  What is left here is a compatibility wrapper, and it
 may disappear in a future version.
 
-Aside from the usual stuff, these functions have been speciall mapped:
+Aside from the usual stuff, these functions have been specially mapped:
 
     error_log => error 
     error     => moved to Shipping::user_error  
@@ -46,7 +46,7 @@ or error messages.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 193 $; $r =~ /\d+/; $&; };
 @EXPORT = qw( debug debug3 trace log_error error );
 
 use strict;

@@ -10,7 +10,7 @@ Business::Shipping::RateRequest - Abstract class
 
 =head1 VERSION
 
-$Rev: 190 $
+$Rev: 198 $
 
 =head1 DESCRIPTION
 
@@ -22,7 +22,7 @@ Represents a request for shipping cost estimation.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 198 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -31,7 +31,6 @@ use Data::Dumper;
 use Business::Shipping::Util;
 use Business::Shipping::Logging;
 use Business::Shipping::Config;
-use Cache::FileCache;
 
 =head2 $rate_request->is_success()
 
@@ -84,6 +83,7 @@ use Class::MethodMaker 2.0
       scalar => [ { -type    => 'Business::Shipping::Shipment',
                     -forward => [ 
                                     'service', 
+                                    'service_code', 'service_nick', 'service_name', 'service_nick2',
                                     'from_country',
                                     'from_country_abbrev',
                                     'to_country',
@@ -312,34 +312,53 @@ sub gen_unique_key
     return;
 }
 
-=head2 $rate_request->total_charges()
+=head2 $rate_request->rate()
 
 Iterates the $self->results hash and sums the charges from each 
 package->charges.  Returns the total.
 
+Example of what the results look like:
+
+ [
+     { 
+         name => 'UPS_Online',
+         rates   => [
+                        {
+                            code        => '03',
+                            short_name  => 'GNDRES',
+                            name        => 'Ground Residential',
+                            est_deliv   => 4,
+                            charges     => 5.32,
+                            charges_formatted => '$5.32',
+                        },
+                    ]
+     }
+ ];
+
 =cut
 
-sub total_charges
+sub rate
 {
-    my $self = shift;
-    my $total;
+    my ( $self ) = @_;
     
-    my $shippers = $self->results;
-    foreach my $shipper ( keys %$shippers ) {
-        debug3 "\tshipper: $shipper\n";
-        
-        my $packages = $self->results->{ $shipper };        
-        foreach my $package ( @$packages ) {
-            #debug3 "\t" . uneval( $package );
-            my $charges = $package->{ 'charges' };
-            if ( $charges ) {
-                debug3 "\t\tcharges = $charges\n";
-                $total += $charges;
-            }
-        }
+    if ( $self->service and lc $self->service eq 'shop' ) {
+        # rate() does not work for 'shop' types, how would you know
+        # which service to return?  Return data structure with all
+        # that is needed.
+        return $self->results;
     }
-        
-    return Business::Shipping::Util::currency( { no_format => 1 }, $total );
+    
+    if ( ref( $self->results ) ne 'ARRAY' ) {
+        $self->user_error( "Could not determine rate." );
+        return;
+    }
+    
+    foreach my $shipper ( @{ $self->results } ) {
+        # Just return the amount for the first one.
+        return $shipper->{ rates }->[ 0 ]->{ charges };
+    }
+    
+    return;
 }
 
 =head2 $rate_request->get_unique_keys()
@@ -420,16 +439,20 @@ sub display_price_components
 }
 
 # COMPAT: get_total_price()
+# COMPAT: total_charges()
 
 =head2 $rate_request->get_total_price()
 
 For backwards compatibility.
 
+=head2 $rate_request->total_charges()
+
+For backwards compatibility.
+
 =cut
 
-sub get_total_price { &total_charges; }
-
-
+*get_total_price = *total_charges;
+*total_charges = *rate;
 
 1;
 

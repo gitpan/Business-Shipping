@@ -6,7 +6,7 @@ Business::Shipping::Config - Configuration functions
 
 =head1 VERSION
 
-$Rev: 189 $
+$Rev: 200 $
 
 =head1 DESCRIPTION
 
@@ -20,7 +20,7 @@ Config::IniFiles module.
 use constant DEFAULT_SUPPORT_FILES_DIR => '/var/perl/Business-Shipping';
 #use constant DEFAULT_SUPPORT_FILES_DIR => '~_~SUPPORT_FILES_DIR~_~';
 
-$VERSION = do { my $r = q$Rev: 189 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 200 $; $r =~ /\d+/; $&; };
 @EXPORT = qw/ cfg cfg_obj config_to_hash config_to_ary_of_hashes /;
 
 use strict;
@@ -227,7 +227,6 @@ sub get_req_mod
     
     my $req_mod = {
         'Minimum' => [ qw/
-            Scalar::Util
             Class::MethodMaker::Engine              
             Log::Log4perl                           
             Business::Shipping                      

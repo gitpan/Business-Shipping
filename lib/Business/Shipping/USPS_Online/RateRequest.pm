@@ -4,7 +4,7 @@ Business::Shipping::USPS_Online::RateRequest
 
 =head1 VERSION
 
-$Rev: 190 $
+$Rev: 194 $
 
 =head1 SERVICE TYPES
 
@@ -36,7 +36,7 @@ $Rev: 190 $
 
 package Business::Shipping::USPS_Online::RateRequest;
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 194 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -323,9 +323,19 @@ sub _handle_response
         return $self->is_success( 0 );
     }
     debug( 'Setting charges to ' . $charges );
-    my $packages = [ { 'charges' => $charges, }, ];
-    my $shipper_name = $self->shipment->shipper() || 'Shipper';
-    my $results = { $shipper_name => $packages };
+    
+    my $results = [
+        {
+            name  => $self->shipper() || 'USPS_Online', 
+            rates => [
+                {
+                    charges   => $charges,
+                    charges_formatted => Business::Shipping::Util::currency( {}, $charges ),
+                },
+            ]
+        }
+    ];
+    
     $self->results( $results );
     
     trace 'returning success';

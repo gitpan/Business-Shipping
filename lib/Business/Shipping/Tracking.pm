@@ -1,6 +1,6 @@
 # Business::Shipping::Tracking - Abstract class
 # 
-# $Id: Tracking.pm 190 2004-09-19 04:29:09Z db-ship $
+# $Id: Tracking.pm 193 2004-11-15 02:14:33Z db-ship $
 # 
 # Copyright (c) 2004 Infogears Inc.  All rights reserved.
 # Portions Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights 
@@ -44,7 +44,7 @@ Business::Tracking is an API for tracking shipments
 =cut
 
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 193 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -245,7 +245,6 @@ sub validate
 
     }
 
-        
     return 1;
 }
 

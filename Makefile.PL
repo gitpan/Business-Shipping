@@ -23,15 +23,21 @@ my %my_globals = (
 =cut
 
 $::UseDefaults = 0;
+$::UseOptions;
+
 if ( @ARGV ) {
     eval "use Getopt::Mixed";
     if ( ! $@ ) {
-        our $opt_u;
-        Getopt::Mixed::getOptions( 'u:i use_defaults>u' );
-        my %rr_params;
-        if ( $opt_u ) {
-            $::UseDefaults = 1;
-        }
+        $::UseOptions = 1;
+    }
+}
+
+if ( $::UseOptions ) {
+    our $opt_u;
+    Getopt::Mixed::getOptions( 'u:i use_defaults>u' );
+    my %rr_params;
+    if ( $opt_u ) {
+        $::UseDefaults = 1;
     }
 }
 
@@ -44,9 +50,12 @@ WriteMakefile(
     PREREQ_PM		=> { 
         'Class::MethodMaker::Engine' => 0,
         'Log::Log4perl'              => 0,
-        'Scalar::Util'               => 1.10,
+        'Scalar::Util'               => 0,
         'Test::More'                 => 0.40,
     },
+    EXE_FILES       => [
+        'bin/Business-Shipping-UPS_Offline-update-fuel-surcharge.pl',
+    ]
 );
 
 # Override the standard "install" target, so that it calls "support_files_install"
