@@ -15,7 +15,7 @@ Provides simple "dubug()", "error()", and etc. routines.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 189 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 211 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -23,7 +23,7 @@ use Carp;
 use Log::Log4perl;
 
 $Business::Shipping::KLogging::Current_Level = 'WARN';
-@Business::Shipping::KLogging::Levels = ( 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL' );
+@Business::Shipping::KLogging::Levels = qw( DEBUG INFO WARN ERROR FATAL );
 
 =head2 debug
 

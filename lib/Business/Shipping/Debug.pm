@@ -6,7 +6,7 @@ Business::Shipping::Debug - For backwards compatibility only
 
 =head1 VERSION
 
-$Rev: 193 $
+$Rev: 211 $
 
 =head1 SYNOPSIS
 
@@ -29,7 +29,7 @@ Aside from the usual stuff, these functions have been specially mapped:
     error     => moved to Shipping::user_error  
                  ('user_error' calls error, but also logs the message for 
                  display to the user).
-    uneval    => moted to Util::uneval
+    uneval    => moved to Util::uneval
                            
 
 So, for compatibility, the 'error' sub here replaces the one that was normally
@@ -46,7 +46,7 @@ or error messages.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 193 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 211 $; $r =~ /\d+/; $&; };
 @EXPORT = qw( debug debug3 trace log_error error );
 
 use strict;

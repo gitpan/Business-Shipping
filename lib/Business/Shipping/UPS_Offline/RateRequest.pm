@@ -19,7 +19,7 @@ Business::Shipping::UPS_Offline::RateRequest
 
 =head1 VERSION
 
-$Rev: 200 $
+$Rev: 211 $
 
 =head1 GLOSSARY
 
@@ -35,7 +35,7 @@ $Rev: 200 $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 200 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 211 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -385,31 +385,42 @@ sub calc_fuel_surcharge
     # Hundredweight Service, and UPS Standard to Canada.
     
     my $ups_service_name = $self->service_name;
-    my @exempt_services = qw/
+    
+    # There are no exempt services as of Jan 3, 2005: everything has a fuel 
+    # surcharge.
+    #my @exempt_services = qw/
+    #    Ground Commercial
+    #    Ground Residential
+    #    Ground Hundredweight Service
+    #    Standard
+    #/;
+    #return 0 if grep /$ups_service_name/i, @exempt_services;
+    
+    my @ground_services = qw/
         Ground Commercial
         Ground Residential
         Ground Hundredweight Service
         Standard
     /;
-    return 0 if grep /$ups_service_name/i, @exempt_services;
+    my $is_ground_svc = 0;
+    $is_ground_svc = 1 if grep /$ups_service_name/i, @ground_services;
     
     my $fuel_surcharge_filename = Business::Shipping::Config::support_files 
     . '/config/fuel_surcharge.txt';
     
     my $fuel_surcharge_contents = readfile( $fuel_surcharge_filename );
+    my ( $line1, undef, $line3 ) = split( "\n", $fuel_surcharge_contents );
+    my ( undef, $g_fuel_surcharge ) = split( ': ', $line1 );
+    my ( undef, $a_fuel_surcharge ) = split( ': ', $line3 );
+    my $fuel_surcharge;
+    if ( $is_ground_svc ) 
+        { $fuel_surcharge = $g_fuel_surcharge; }
+    else 
+        { $fuel_surcharge = $a_fuel_surcharge; }
     
-    my ( $line1 ) = split( "\n", $fuel_surcharge_contents );
-    my ( undef, $fuel_surcharge ) = split( ': ', $line1 );
-    
-    # Old method of calculating fuel surcharge:
-    #my $fuel_surcharge = cfg()->{ ups_information }->{ fuel_surcharge } || do { 
-    #    $self->user_error( "fuel surcharge rate not found" ); 
-    #    return 0; 
-    #};
-    
-    $fuel_surcharge =~ s/\%//;
-    $fuel_surcharge *= .01;
-    $fuel_surcharge *= $self->_total_charges;
+    $fuel_surcharge ||= 0;
+    $fuel_surcharge  *= .01;
+    $fuel_surcharge  *= $self->_total_charges;
     
     return $fuel_surcharge;
 }
@@ -529,6 +540,11 @@ sub calc_zone_data
             for(@zone[1 .. $#zone]) {
                 #debug( "before = $_" );
                 my @columns = split( ',', $_ );
+                if ( not $columns[ 0 ] ) {
+                    debug "Nothing in the first column, zone was expected.";
+                    next;
+                }
+                
                 if ( $columns[ 0 ] =~ /-/ ) {
                     #
                     # "601-605" =>    "601,605"

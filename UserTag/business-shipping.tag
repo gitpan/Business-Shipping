@@ -19,7 +19,7 @@ UserTag  business-shipping  Documentation <<EOD
 
 =head1 VERSION
 
-[business-shipping] usertag:    $Rev: 198 $
+[business-shipping] usertag:    $Rev: 210 $
 Requires Business::Shipping:     Revision: 1.54+
 
 =head1 AUTHOR 
@@ -73,6 +73,7 @@ Here is a general outline for installing [business-shipping] in Interchange.
    Business::Shipping shipper.  Note that the spaces below are one tab.
 
 BS_DEBUG	0	Shipping
+BS_GEN_INCIDENTS    0   Shipping
 BS_FROM_COUNTRY	US	Shipping
 BS_FROM_STATE	WA	Shipping
 BS_FROM_ZIP	98682	Shipping
@@ -245,12 +246,10 @@ sub {
     {
         # Don't report invalid rate requests:No zip code, GNDRES to Canada, etc.
        
-        if ( $rate_request->invalid ) {
-            $report_incident = 0;
-        }
-        else {
-             $report_incident = 1;
-        }
+        if ( $rate_request->invalid ) 
+            { $report_incident = 0; }
+        else 
+            { $report_incident = 1; }
     }
     
     if ( $report_incident ) {
@@ -276,7 +275,6 @@ sub {
         my $error = $rate_request->user_error();
         
         # Ignore errors if [incident] is missing or misbehaves.
-
         eval {
             $Tag->incident(
                 {
@@ -285,7 +283,7 @@ sub {
                 }
             );
         };
-        $@ = '';
+        
     }
     ::logDebug( "[business-shipping] returning " . ( $charges || 'undef' ) ) if $debug;
     
