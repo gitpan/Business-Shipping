@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = '1.00';
+our $VERSION = '1.02';
 
 1;
 __END__
@@ -19,19 +19,22 @@ C<perl -MCPAN -e 'install Bundle::Business::Shipping'>
 
 =head2 CONTENTS
 
-     Archive::Zip 
-     Bundle::DBD::CSV 
-     Cache::FileCache 
-     Class::MethodMaker 
-     Config::IniFiles 
-     Crypt::SSLeay 
-     Data::Dumper 
-     Devel::Required 0.03
-     Error 
-     LWP::UserAgent 
-     Math::BaseCnv 
-     XML::DOM
-     XML::Simple 2.05
+ Archive::Zip 
+ Bundle::DBD::CSV
+ Cache::FileCache 
+ Class::MethodMaker 
+ Config::IniFiles 
+ Crypt::SSLeay 
+ Data::Dumper 
+ Devel::Required 
+ Error 
+ Getopt::Mixed 
+ LWP::UserAgent 
+ Math::BaseCnv 
+ Scalar::Util 
+ XML::DOM 
+ XML::Simple
+ Business::Shipping      - Business::Shipping itself
 
 =head1 AUTHOR
 

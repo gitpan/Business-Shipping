@@ -1,6 +1,15 @@
 Revision history for Business::Shipping.
 
-1.04  CVS
+1.06  CVS
+
+1.05  Feb 10 2004
+
+General
+    - Fix Bundle::Business::Shipping
+    - Remove unneeded .zip files from data/
+	- Minor documentation updates
+
+1.04  Feb 07 2004
 	- Compatibility
 		+ Scalar::Util 1.10 is now required (to pretty up the code a little).
 		+ Getopt::Mixed now required for some scripts.
