@@ -1,59 +1,186 @@
-Revision history for Business::Shipping.
+Revision history for Business::Shipping
+=======================================
 
-1.07  CVS
+1.51  CVS
+
+  Compatibility
+    - Module names have been restructured.  When using 
+      Business::Shipping->rate_request(), be sure to use the new values for 
+      'shipper':
+      shipper => 'UPS_Online',
+      shipper => 'USPS_Online',
+      shipper => 'UPS_Offline',
+      
+  General
+    * [Enh] Die if path to support files is missing files.
+    * [Enh] Restructure all of the modules
+      - Keep everything the same, except the "lowest level":
+          "RateRequest::Online::UPS"   => "UPS_Online::RateRequest"
+	  "RateRequest::Offline::UPS"  => "UPS_Offline::RateRequest"
+	  "RateRequest::Online::USPS"  => "USPS_Online::RateRequest"
+	  "Tracking::UPS" => "UPS_Online::Tracking"
+      - Benefits:
+        All of the related code is in one directory.
+        All of the abstract code is in neutral directories.
+      - Note: This will totally break the ClassInfo/ClassAttribs system, because 
+        that system just uses the names, instead of actually checking the 
+        inheritance trees.
+    * [Enh] Update the ClassInfo/ClassAttribs system to handle the restructured
+      module system.  Should use @{ $class::ISA } instead of breaking down the 
+      name components.  
+    * [Fixed] [Bug] For Micah Gersten <micah@davka.com>, Business.pm was 
+      'require'd.
+
+1.50  CVS
+
+  Compatibility
+    - Clone module now required (for Tracking).
+    - Test::More module required.
+    - Class::MethodMaker 2.02 now required.  CPAN installation instructions:
+      perl -MCPAN -e 'install Class::MethodMaker::Engine'
+      Updated because the new version has sugary syntax.
+    - Log::Log4perl now required (for debug/error handling).
+    - event_handlers() depreciated (use config/log4perl.conf instead).
+    - $self->error() changed to $self->user_error() 
+    - Multi-package API un-supported.
+
+  Tracking
+    - Rusty Conover <rconover@infogears.com> contributed the following:
+        Tracking
+        Tracking::USPS
+        Tracking::UPS
+        
+  General
+    - Changed to dual GPL/Artistic License.
+    - Changed hosting from kavod.com to sf.net.
+    - Code cleanup all over the place.
+    - Logging system added, wrapper for Log4perl.
+    - Major documentation updates.
+    - Change tabs to four spaces
+    - Developed ClassAttribs and ClassInfo packages for extracting meta-data
+      from the classes themselves (uses static class methods).  Used here to
+      implement "Required Options", "Optional Options", and "Unique Options".
+    - Upgrade to Class::MethodMaker 2.0 syntax.  
+      Business::Shipping::CustomMethodMaker removed.
+    - Added minimal documentation to most of the modules.
+    - Shipment: default_package function now a little smarter with regard to
+      the auto-creation of a default package if one does not exist.
+    - LWP::UserAgent and HTTP::Response objects now created on-the-fly.
+    - Many other misc. changes.
+    - New tests.
+    - Remove documentation for multi-package API.  Unsupported.
+    - Fixed: Error on missing arguments isn't working very well (user_id, 
+      password)
+    - [Done] [Enh] Use podchecker during build process
+    - [Fixed] Many POD nits fixed.
+    - [Done] [Enh] Auto-translate variables during installation
+      At the time of Makefile.PL, automatically transform some variables, such
+      as installation paths.  Currently setup for config/log4perl.conf and
+      lib/Business/Shipping/Config.pm.
+    - Support arrays in Has_a fields.
+
+   
+  Offline::UPS
+    - Bug fixed: Zip+4 not handled correctly (should drop the four).
+    - Update fuel surcharge to 6.0%.
+    - Minor validity changes:
+      - Warning about UPS Standard being available to Canada only.
+      - These do not have XPD: Cyprus, United Arab Emirates, Saudi Arabia, St.
+        Lucia, Israel
+    - Restrictions for Canada added.
+    - Rewrite of surcharge/adder system for consistency.
+    - Make pricing components available to the user.  Allows the user to see
+      how much of the total charges were for various surcharges.
+    - Fuel surcharge only applies to the correct services.
+    - [Fixed] [BUG] UPS Ground: Was 7.02; should have been 8.64.
+      - See t/manual/offline_ups_bug2_al.pl
+      - Was using gndcomm instead of gndres
+      - Surcharges weren't setup correctly
+    - [Fixed] [BUG] Gaps in data are not accounted for.
+      - Some UPS files (ww_xpr) do not have a record for every weight (Exceed = 55)
+        To solve the problem, add 1 to the weight, and try again.
+    - [Fixed] [BUG] United Kingdom Express Plus
+      - Caused by the "Gaps in data are not accounted for" bug.
+        Error:  Zero cost returned for mode ExpressPlusSM, geo code (key) United 
+        Kingdom.
+    - [Fixed] [Bug] France XPR
+    - [Fixed] [bug] 'make test' generates warnings
+      - t/45_Offline-UPS..........Argument "Letter" isn't numeric in numeric eq
+	(==) at [...]/SQL/Statement.pm line 1120, <GEN3> chunk 2.  Argument 
+	"Multiplier" isn't numeric in numeric eq (==) at [...]/SQL/Statement.pm
+	line 1120, <GEN3> chunk 153.
+      - 'use diagnostics;' was removed to solve the problem.
+
+  Online::USPS
+    - Pounds, ounces, and weight handling refactored.
+    
+  Interchange UserTag
+    - Sort hashes before reporting them in incidents.
+    - [Fixed] The "don't send if required field is missing" doesn't work in 
+      the "send incident report code" feature -- it sends it even if to_zip is
+      missing.
+        - Fixed with "Required Options" changes.
+    - City added
+    - Incident report enhancements.
+    - Variable formatting fixes
+
 
 1.06  Feb 11 2004
 
-    - Remove Bundle::Business::Shipping (now in its own distro, where it should
+  General
+    - Remove Bundle::Business::Shipping (now in its own distro, where it should 
       be).
+  
 	  
 1.05  Feb 10 2004
-
-General
-    - Fix Bundle::Business::Shipping
+  
+  General
+    - Attempted fix for Bundle::Business::Shipping
     - Remove unneeded .zip files from data/
-	- Minor documentation updates
-
-1.04  Feb 07 2004
-	- Compatibility
-		+ Scalar::Util 1.10 is now required (to pretty up the code a little).
-		+ Getopt::Mixed now required for some scripts.
+    - Minor documentation updates
+   
 	
-	- General
-		+ Created a Bundle::Business::Shipping module, uploaded to CPAN, and add
-		  to CVS.
-		+ New configuration parameter for this style:
-		  service=XDM    to_country=Brazil
-		  service=XDM    to_country=Canada       reason=Not available.
-		+ Scripts moved from doc/ to bin/
-		+ Some scripts re-named.
-		+ Rename some of the tests.
-		+ Devel::Required patch no longer necessary.  Recent version implement
-		  the desired functionality.
-		+ Class::MethodMaker patch no longer necessary.  Subclassing is 
-		  sufficient.
-		+ Remove zip files from distribution, they take up too much space.
-		+ Move some configuration methods from Shipping to Shipping::Config.
+1.04  Feb 07 2004
+    - Compatibility
+        + Scalar::Util 1.10 is now required (to pretty up the code a little).
+        + Getopt::Mixed now required for some scripts.
+    
+    - General
+        + Created a Bundle::Business::Shipping module, uploaded to CPAN, and add
+          to CVS (removed in 1.06).
+        + New configuration parameter for this style:
+          service=XDM    to_country=Brazil
+          service=XDM    to_country=Canada       reason=Not available.
+        + Scripts moved from doc/ to bin/
+        + Some scripts re-named.
+        + Rename some of the tests.
+        + Devel::Required patch no longer necessary.  Recent version implement
+          the desired functionality.
+        + Class::MethodMaker patch no longer necessary.  Subclassing is 
+          sufficient.
+        + Remove zip files from distribution, they take up too much space.
+        + Move some configuration methods from Shipping to Shipping::Config.
 
-	- Offline::UPS
-		+ Major fix to the low/high number/name scheme.  For international, it 
-		  is now handled via split/rejoin, because the regex was choking on some
-		  of the country names.  This was causing many zip code combinations
-		  (that had lost their "high" in the last update), as well as some 
-		  countries, to fail.
-		+ Another fix for number range scheme.
-		+ Sense validity for several combinations of service and country/zip.
-		  (Ground Residential to Hawaii is now "invalid").
-		+ New test for the Netherlands.
-		+ Update to February fuel surcharge (5%)
-		+ New invalid request: Anything but express to israel.
-		+ New tests for Israel.
+    - Offline::UPS
+        + Major fix to the low/high number/name scheme.  For international, it 
+          is now handled via split/rejoin, because the regex was choking on some
+          of the country names.  This was causing many zip code combinations
+          (that had lost their "high" in the last update), as well as some 
+          countries, to fail.
+        + Another fix for number range scheme.
+        + Sense validity for several combinations of service and country/zip.
+          (Ground Residential to Hawaii is now "invalid").
+        + New test for the Netherlands.
+        + Update to February fuel surcharge (5%)
+        + New invalid request: Anything but express to israel.
+        + New tests for Israel.
 
-	- UserTag
-		+ Add feature for not reporting "invalid" requests to the incident
-		  generator.
-		+ Pretty up the incident e-mail a little.
+    - UserTag
+        + Add feature for not reporting "invalid" requests to the incident
+          generator.
+        + Pretty up the incident e-mail a little.
 
+		
 1.03  Jan 30 2004    
     - Compatibility:
         - Math::BaseCnv now required (for Offline::UPS to Canada, to convert 
@@ -81,12 +208,12 @@ General
         - Minor fixes: Express Plus.
         - Offline::UPS now supports all services to Canada, which completes all of 
           the Offline::UPS countries.
-		- New error message for XDM to Canada.
-		- Removed regexp that was causing an extra field to be put in the data.
-	      (This fixed a lot of XDM shipments that weren't working before.)
-		- Fixed: Some country/service type records were not returning errors 
-		  (e.g. Malaysia+XDM).
-		- Fixed: CA (Canada) was matching AfriCA.
+        - New error message for XDM to Canada.
+        - Removed regexp that was causing an extra field to be put in the data.
+          (This fixed a lot of XDM shipments that weren't working before.)
+        - Fixed: Some country/service type records were not returning errors 
+          (e.g. Malaysia+XDM).
+        - Fixed: CA (Canada) was matching AfriCA.
 
     - Tests:
       - Additional UPS Online/Offline tests: Canada, Mexico.
@@ -101,8 +228,9 @@ General
         - Reporting updates.
         - Add the [incident] usertag for reporting errors.
         - Minor UserTag compatibility updates (from_state)
-		- Add a mechanism for ignoring simple errors.
+        - Add a mechanism for ignoring simple errors.
 
+		
 1.02  Jan 06 2004
     - Update all data tables from UPS (Jan 05 2004)
     - Update fuel surcharge
@@ -110,6 +238,7 @@ General
     - Rename the update functions.
     - Sample "auto update" script that will update the data files.
 
+	
 1.01  Jan 02 2004
     - Offline UPS support for International Express, ExpressPlus, and Expedited.
     - Offline UPS support for Hawaii and Alaska.
@@ -120,6 +249,7 @@ General
     - Some data format changes (east coast/west coast data update, add 'letter'
       to 1da chart, rename several of the files).
 
+	  
 1.00  Dec 21 2003
     - Major updates: many new features prompt the jump into 1.0 land. 
     - New Offline::UPS module: provides table-based rate requests, which are
@@ -141,6 +271,7 @@ General
       - Gracefully handles more 500 errors from the servers.
       - Performs Business-Shipping tasks within an eval.
 
+	  
 0.78  Nov 12 2003
     - Cleanup old CustomMethodMaker tests
     - Cleanup POD
@@ -148,11 +279,13 @@ General
     - Moved credits to its own file.
     - Text and HTML versions of documentation now in doc/
 
+	
 0.77  Nov 11 2003
     - Add UPS one-day air saver.
     - Cleanup TODO list.
     - Add COPYING file.
 
+	
 0.76  Oct 13 2003
     - Fixed bug report:
          calling Business::Shipping::USPS->submit( 
@@ -172,6 +305,7 @@ General
     - Online::UPS thinned.
     - Additional test for UPS Letter post to Canda.
 
+	
 0.75  Aug 25 2003
     - Additional USPS tests (Letter service, Canada service)
     - Additional UPS tests (Canada)
@@ -240,7 +374,7 @@ General
     - Add dependency requirements
     - Misc updates.
 
-    
+
 0.02  Sat May 31 18:04:00 2003
     - Testing overhaul
     - Lots of bug fixes (uncovered by testing, mostly for USPS)
@@ -250,7 +384,7 @@ General
     - API Changes:
         + None.
 
-        
+
 0.01  Fri May 30 22:45:11 2003
     - Moved everything around a lot
     - Packaged everything like standard Perl modules

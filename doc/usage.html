@@ -1,8 +1,8 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>Business::Shipping - API for shipping-related tasks</title>
-<link rev="made" href="mailto:db@kavod1.kavod.com" />
+<title>Business::Shipping - Interface for shippers</title>
+<link rev="made" href="mailto:root@localhost" />
 </head>
 
 <body style="background-color: white">
@@ -14,25 +14,22 @@
 
 	<li><a href="#name">NAME</a></li>
 	<li><a href="#synopsis">SYNOPSIS</a></li>
-	<li><a href="#abstract">ABSTRACT</a></li>
 	<ul>
 
-		<li><a href="#shipping_tasks_implemented_at_this_time">Shipping Tasks Implemented at this time</a></li>
-		<li><a href="#shipping_vendors_implemented_at_this_time">Shipping Vendors Implemented at this time</a></li>
+		<li><a href="#rate_request_example">Rate request example</a></li>
+		<li><a href="#shipping_tasks_implemented_at_this_time">Shipping tasks implemented at this time</a></li>
+		<li><a href="#shipping_tasks_planned_for_future_addition">Shipping tasks planned for future addition</a></li>
 	</ul>
 
 	<li><a href="#required_modules">REQUIRED MODULES</a></li>
 	<li><a href="#installation">INSTALLATION</a></li>
 	<ul>
 
-		<li><a href="#online__ups_example">Online::UPS Example</a></li>
-	</ul>
-
-	<li><a href="#error_debug_handling">ERROR/DEBUG HANDLING</a></li>
-	<li><a href="#class_methods">CLASS METHODS</a></li>
-	<ul>
-
+		<li><a href="#_self_init___args__">$self-&gt;init( %args )</a></li>
+		<li><a href="#_self_user_error__error_message__">$self-&gt;user_error( ``Error message'' )</a></li>
+		<li><a href="#_self_validate__">$self-&gt;<code>validate()</code></a></li>
 		<li><a href="#rate_request__"><code>rate_request()</code></a></li>
+		<li><a href="#business__shipping_new_subclass__subclass__name___opt__">Business::Shipping-&gt;new_subclass( ``Subclass::Name'', %opt )</a></li>
 	</ul>
 
 	<li><a href="#author">AUTHOR</a></li>
@@ -44,148 +41,101 @@
 <p>
 </p>
 <h1><a name="name">NAME</a></h1>
-<p>Business::Shipping - API for shipping-related tasks</p>
+<p>Business::Shipping - Interface for shippers (UPS, USPS)</p>
 <p>
 </p>
 <hr />
 <h1><a name="synopsis">SYNOPSIS</a></h1>
-<p>Example rate request:</p>
-<pre>
-        use Business::Shipping;
-        
-        my $rate_request = Business::Shipping-&gt;rate_request(
-                shipper         =&gt; 'Offline::UPS',
-                service         =&gt; 'GNDRES',
-                from_zip        =&gt; '98682',
-                to_zip          =&gt; '98270',
-                weight          =&gt;  5.00,
-        );      
-        
-        $rate_request-&gt;submit() or die $rate_request-&gt;error();
-        
-        print $rate_request-&gt;total_charges();</pre>
 <p>
 </p>
-<hr />
-<h1><a name="abstract">ABSTRACT</a></h1>
-<p>Business::Shipping is an API for shipping-related tasks.</p>
+<h2><a name="rate_request_example">Rate request example</a></h2>
+<pre>
+    use Business::Shipping;
+    
+    my $rate_request = Business::Shipping-&gt;rate_request(
+        shipper   =&gt; 'Offline::UPS',
+        service   =&gt; 'GNDRES',
+        from_zip  =&gt; '98682',
+        to_zip    =&gt; '98270',
+        weight    =&gt;  5.00,
+    );    
+    
+    $rate_request-&gt;submit() or die $rate_request-&gt;user_error();
+    
+    print $rate_request-&gt;total_charges();</pre>
 <p>
 </p>
-<h2><a name="shipping_tasks_implemented_at_this_time">Shipping Tasks Implemented at this time</a></h2>
-<pre>
- * Shipping cost calculation
- * Tracking, availability, and other services are planned for future addition.</pre>
+<h2><a name="shipping_tasks_implemented_at_this_time">Shipping tasks implemented at this time</a></h2>
+<ul>
+<li><strong><a name="item_ups_shipment_cost_calculation_using_ups_online_web">UPS shipment cost calculation using UPS Online WebTools.</a></strong><br />
+</li>
+<li><strong><a name="item_ups_shipment_cost_calculation_using_offline_tables">UPS shipment cost calculation using offline tables.</a></strong><br />
+</li>
+<li><strong><a name="item_usps_shipment_cost_calculation_using_usps_online_w">USPS shipment cost calculation using USPS Online WebTools.</a></strong><br />
+</li>
+<li><strong><a name="item_ups_shipment_tracking_2e">UPS shipment tracking.</a></strong><br />
+</li>
+<li><strong><a name="item_usps_shipment_tracking_2e">USPS shipment tracking.</a></strong><br />
+</li>
+</ul>
 <p>
 </p>
-<h2><a name="shipping_vendors_implemented_at_this_time">Shipping Vendors Implemented at this time</a></h2>
-<pre>
- * Online UPS (using the Internet and UPS servers)
- * Offline UPS (using tables stored locally)
- * Online USPS</pre>
-<p>Offline FedEX and USPS are planned for support in the future.</p>
+<h2><a name="shipping_tasks_planned_for_future_addition">Shipping tasks planned for future addition</a></h2>
+<ul>
+<li><strong><a name="item_usps_zip_code_lookup">USPS zip code lookup</a></strong><br />
+</li>
+<li><strong><a name="item_usps_address_verification">USPS address verification</a></strong><br />
+</li>
+<li><strong><a name="item_usps_shipment_cost_estimation_via_offline_tables">USPS shipment cost estimation via offline tables</a></strong><br />
+</li>
+<li><strong><a name="item_fedex_shipment_cost_estimation">FedEX shipment cost estimation</a></strong><br />
+</li>
+</ul>
 <p>
 </p>
 <hr />
 <h1><a name="required_modules">REQUIRED MODULES</a></h1>
-<pre>
- Archive::Zip (any)
- Bundle::DBD::CSV (any)
- Cache::FileCache (any)
- Class::MethodMaker (any)
- Config::IniFiles (any)
- Crypt::SSLeay (any)
- Data::Dumper (any)
- Devel::Required (0.03)
- Error (any)
- Getopt::Mixed (any)
- LWP::UserAgent (any)
- Math::BaseCnv (any)
- Scalar::Util (1.10)
- XML::DOM (any)
- XML::Simple (2.05)</pre>
+<p>Bundle::DBD::CSV (any)
+Cache::FileCache (any)
+Class::MethodMaker::Engine (any)
+Clone (any)
+Config::IniFiles (any)
+Crypt::SSLeay (any)
+Getopt::Mixed (any)
+Log::Log4perl (any)
+LWP::UserAgent (any)
+Math::BaseCnv (any)
+Scalar::Util (1.10)
+XML::DOM (any)
+XML::Simple (2.05)</p>
 <p>
 </p>
 <hr />
 <h1><a name="installation">INSTALLATION</a></h1>
-<p><code>perl -MCPAN -e 'install Bundle::Business::Shipping'</code>
+<p><code>perl -MCPAN -e 'install Bundle::Business::Shipping'</code></p>
+<p>See the INSTALL file for more information.
 </p>
 <pre>
 
-=head1 MULTI-PACKAGE API</pre>
+=head1 ERROR/DEBUG HANDLING</pre>
+<p>Log4perl is used for logging error, debug, etc. messages.  See 
+config/log4perl.conf.
+</p>
+<pre>
+
+=head1 METHODS</pre>
 <p>
 </p>
-<h2><a name="online__ups_example">Online::UPS Example</a></h2>
-<pre>
- use Business::Shipping;
- use Business::Shipping::Shipment::UPS;
- 
- my $shipment = Business::Shipping::Shipment::UPS-&gt;new();
- 
- $shipment-&gt;init(
-        from_zip        =&gt; '98682',
-        to_zip          =&gt; '98270',
-        service         =&gt; 'GNDRES',
-        #
-        # user_id, etc. needed here.
-        #
- );</pre>
-<pre>
- $shipment-&gt;add_package(
-        id              =&gt; '0',
-        weight          =&gt; 5,
- );</pre>
-<pre>
- $shipment-&gt;add_package(
-        id              =&gt; '1',
-        weight          =&gt; 3,
- );
- 
- my $rate_request = Business::Shipping::rate_request( shipper =&gt; 'Online::UPS' );
- #
- # Add the shipment to the rate request.
- #
- $rate_request-&gt;shipment( $shipment );
- $rate_request-&gt;submit() or ie $rate_request-&gt;error();</pre>
-<pre>
- print $rate_request-&gt;package('0')-&gt;get_charges( 'GNDRES' );
- print $rate_request-&gt;package('1')-&gt;get_charges( 'GNDRES' );
- print $rate_request-&gt;get_total_price( 'GNDRES' );</pre>
+<h2><a name="_self_init___args__">$self-&gt;init( %args )</a></h2>
+<p>Generic attribute setter.</p>
 <p>
 </p>
-<hr />
-<h1><a name="error_debug_handling">ERROR/DEBUG HANDLING</a></h1>
-<p>The 'event_handlers' argument takes a hashref telling Business::Shipping what to do
-for error, debug, trace, and the like.  The value can be one of four options:</p>
-<pre>
- * 'STDERR'
- * 'STDOUT'
- * 'carp'
- * 'croak'</pre>
-<p>For example:</p>
-<pre>
- $rate_request-&gt;event_handlers(
-        { 
-                'error' =&gt; 'STDERR',
-                'debug' =&gt; 'STDERR',
-                'trace' =&gt; undef,
-                'debug3' =&gt; undef,
-        }
- );
- 
-The default is 'STDERR' for error handling, and nothing for debug/trace 
-handling.  The option 'debug3' adds additional debugging messages that are not 
-included in the normal 'debug'.  Note that you can still access error messages
-even without an 'error' handler, by accessing the return values of methods.  For 
-example:</pre>
-<pre>
- $rate_request-&gt;init( %values ) or print $rate_request-&gt;error();
-        
-However, if you don't save the error value before the next call, it could be
-overwritten by a new error.</pre>
+<h2><a name="_self_user_error__error_message__">$self-&gt;user_error( ``Error message'' )</a></h2>
+<p>Log and store errors that should be visibile to the user.</p>
 <p>
 </p>
-<hr />
-<h1><a name="class_methods">CLASS METHODS</a></h1>
+<h2><a name="_self_validate__">$self-&gt;<code>validate()</code></a></h2>
+<p>Confirms that the object is valid.  Checks that required attributes are set.</p>
 <p>
 </p>
 <h2><a name="rate_request__"><code>rate_request()</code></a></h2>
@@ -195,7 +145,7 @@ or offline tables.  A hash is accepted as input with the following key values:</
 <li><strong><a name="item_shipper">shipper</a></strong><br />
 </li>
 The name of the shipper to use. Must correspond to a module by the name of:
-<code>Business::Shipping::RateRequest::SHIPPER</code>.  For example, <code>Offline::UPS</code>.
+<code>Business::Shipping::SHIPPER</code>.  For example, <code>UPS_Online</code>.
 <p></p>
 <li><strong><a name="item_user_id">user_id</a></strong><br />
 </li>
@@ -218,7 +168,7 @@ The origin zipcode.
 <p></p>
 <li><strong><a name="item_from_state">from_state</a></strong><br />
 </li>
-The origin state.  Required for Offline::UPS.
+The origin state in two-letter code format or full-name format.  Required for Offline::UPS.
 <p></p>
 <li><strong><a name="item_to_zip">to_zip</a></strong><br />
 </li>
@@ -234,19 +184,24 @@ Weight of the shipment, in pounds, as a decimal number.
 <p></p></ul>
 <p>
 </p>
+<h2><a name="business__shipping_new_subclass__subclass__name___opt__">Business::Shipping-&gt;new_subclass( ``Subclass::Name'', %opt )</a></h2>
+<p>Generates a subclass, such as a Shipment object.
+
+</p>
+<p>
+</p>
 <hr />
 <h1><a name="author">AUTHOR</a></h1>
-<pre>
- Dan Browning         &lt;db@kavod.com&gt;
- Kavod Technologies   <a href="http://www.kavod.com">http://www.kavod.com</a>
+<p>Dan Browning &lt;<em><a href="mailto:db@kavod.com">db@kavod.com</a></em>&gt;, Kavod Technologies, <a href="http://www.kavod.com">http://www.kavod.com</a>.
 
-</pre>
+</p>
 <p>
 </p>
 <hr />
 <h1><a name="copyright_and_licence">COPYRIGHT AND LICENCE</a></h1>
-<p>Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved. 
-Licensed under the GNU Public Licnese (GPL).  See COPYING for more info.
+<p>Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.  See LICENSE for more info.
 
 </p>
 

@@ -1,334 +1,429 @@
 # Business::Shipping::Shipment - Abstract class
 # 
-# $Id: Shipment.pm,v 1.6 2004/02/03 01:51:12 db-ship Exp $
+# $Id: Shipment.pm 161 2004-09-10 18:12:22Z db-ship $
 # 
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved. 
-# 
-# Licensed under the GNU Public Licnese (GPL).  See COPYING for more info.
+# This program is free software; you may redistribute it and/or modify it under
+# the same terms as Perl itself. See LICENSE for more info.
 # 
 
 package Business::Shipping::Shipment;
 
-$VERSION = do { my @r=(q$Revision: 1.6 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r };
+$VERSION = do { my $r = q$Rev: 161 $; $r =~ /\d+/; $&; };
+
+=head1 NAME
+
+Business::Shipping::Shipment - Abstract class
+
+=head1 VERSION
+
+$Rev: 161 $      $Date: 2004-09-10 11:12:22 -0700 (Fri, 10 Sep 2004) $
+
+=head1 DESCRIPTION
+
+Abstract Class: real implementations are done in subclasses.
+
+Shipments have a source, a destination, packages, and other attributes.
+
+=head1 METHODS
+
+=over 4
+
+=cut
 
 use strict;
 use warnings;
 use base ( 'Business::Shipping' );
-use Business::Shipping::Debug;
+use Business::Shipping::Logging;
 use Business::Shipping::Config;
-use Business::Shipping::CustomMethodMaker
-	new_hash_init => 'new',
-	get_set => [ 'current_package_index', ],
-	grouped_fields_inherit => [
-		'required' => [
-			'service',
-			'from_zip',
-			'shipper',	# *NEEDS* to be set, at least to some default.
-		],
-		'optional' => [ 
-			'from_country',
-			'to_country',
-			'to_zip',
-			'from_city',
-			'to_city',
-		],
-		'unique' => [
-			'service',
-			'from_zip',
-			'from_country',
-			'to_zip',
-			'from_city',
-			'to_city',
-		],
-	],
-	object_list => [ 
-		'Business::Shipping::Package' => {
-			'slot'		=> 'packages',
-		},
-	];
-	
-=item Business::Shipping::Shipment
+use Business::Shipping::Util;
 
-=over 4 METHODS
+=item * service
+
+=item * from_country
+
+=item * from_zip
+
+=item * from_city
+
+=item * to_country
+
+=item * to_zip
+
+=item * to_city
+
+=item * packages
+
+Has-A: Object list: Business::Shipping::Package.
 
 =cut
 
-# Forward the weight to the current package.
-sub weight { return shift->current_package->weight( @_ ); }
+use Class::MethodMaker 2.0
+    [
+      new    => [ { -hash => 1, -init => 'this_init' }, 'new' ],
+      scalar => [ qw/ current_package_index service from_zip from_city  to_zip to_city /   
+                ],
+      array  => [ { -type => 'Business::Shipping::Package' }, 'packages' ],
+      scalar => [ { -static => 1, -default => 'packages=>Business::Shipping::Package' }, 'Has_a' ],
+      scalar => [ { -static => 1, 
+                    -default => 'from_country, to_country, to_zip, from_city, to_city' 
+                  },
+                  'Optional' 
+                ],
+      scalar => [ { -static => 1, 
+                    -default => 'service, from_zip, from_country, to_zip, from_city, to_city, weight' 
+                  },
+                  'Unique' 
+                ]
+    ];
 
-# Returns the weight of all packages within the shipment.
+sub this_init { }
+
+=item * weight
+
+Forward the weight to the current package.
+
+=cut
+
+=item * default_package()
+
+Only used for forwarding methods in simple uses of the class.  For example:
+
+ $rate_request->init(
+     service   => '',
+     weight    => '',
+     packaging => '',
+ );
+
+Which is simpler than:
+
+ $rate_request->shipment->service( '' );
+ $rate_request->shipment->packages_index( 0 )->weight( '' );
+ $rate_request->shipment->packages_index( 0 )->packaging( '' );
+ 
+Note that it only works when there is one package only (no multiple packages).
+
+=cut
+
+sub package0 { $_[ 0 ]->packages_index( 0 ) }
+*default_package = *package0;
+*dflt_pkg        = *package0;
+
+sub weight { $_[ 0 ]->package0->weight( @_ ) }
+
+=item * total_weight
+
+Returns the weight of all packages within the shipment.
+
+=cut
+
 sub total_weight
 {
-	my $self = shift;
-	
-	my $total_weight;
-	foreach my $package ( @{ $self->packages() } ) {
-		$total_weight += $package->weight();
-	}
-	return $total_weight;
+    my $self = shift;
+    
+    my $total_weight;
+    foreach my $package ( @{ $self->packages() } ) {
+        $total_weight += $package->weight();
+    }
+    return $total_weight;
 }
 
+=item * to_zip( $to_zip )
+
+Throw away the "four" from zip+four.  
+
+Redefines the MethodMaker implementation of this attribute.
+
+=cut
+
 no warnings 'redefine';
+sub to_zip
+{
+    my $self = shift;
+    
+    if ( $_[ 0 ] ) {
+        my $to_zip = shift;
+        
+        #
+        # U.S. only: need to throw away the "plus four" of zip+four.
+        #
+        if ( $self->domestic and $to_zip and length( $to_zip ) > 5 ) {
+            $to_zip = substr( $to_zip, 0, 5 );
+        }
+        
+        $self->{ 'to_zip' } = $to_zip;
+    }
+    
+    return $self->{ 'to_zip' };
+}
+use warnings; # end 'redefine'
+
+
 =item * to_country()
 
 to_country must be overridden to transform from various forms (alternate
 spellings of the full name, abbreviatations, alternate abbreviations) into
 the full name that we use internally.
 
-May be overridden by subclasses to provide their own spelling ("UK" vs 
-"GB", etc.).
+May be overridden by subclasses to provide their own spelling ("United Kingdom"
+vs "Great Britain", etc.).  
+
+Redefines the MethodMaker implementation of this attribute.
 
 =cut
+
 sub to_country
 {
-	my ( $self, $to_country ) = @_;
-	
-	if ( defined $to_country ) {
-		my $abbrevs = $self->config_to_hash( cfg()->{ ups_information }->{ abbrev_to_country } );
-		$to_country = $abbrevs->{ $to_country } || $to_country;
-	}
-	$self->{ to_country } = $to_country if defined $to_country;
-	
-	return $self->{ to_country };
+    my ( $self, $to_country ) = @_;
+    
+    if ( defined $to_country ) {
+        my $abbrevs = config_to_hash( cfg()->{ ups_information }->{ abbrev_to_country } );
+        my $abbrev_to_country = $abbrevs->{ $to_country };
+        #use Data::Dumper; print STDERR "cfg() -> { ups_information } -> { abbrev_to_country } = " . Dumper( cfg()->{ ups_information }->{ abbrev_to_country } ) . "\nhash = " . Dumper( $abbrevs ) . "\n\n to_country = $to_country, abbrev_to_country = $abbrev_to_country\n";
+        $to_country = $abbrev_to_country || $to_country;
+    }
+    $self->{ to_country } = $to_country if defined $to_country;
+    
+    return $self->{ to_country };
 }
-use warnings;
 
 =item * to_country_abbrev()
 
 Returns the abbreviated form of 'to_country'.
 
+Redefines the MethodMaker implementation of this attribute.
+
 =cut
+
 sub to_country_abbrev
 {
-	my ( $self ) = @_;
-	
-	my $country_abbrevs = $self->config_to_hash( 
-		cfg()->{ ups_information }->{ country_to_abbrev } 
-	);
-	
-	return $country_abbrevs->{ $self->to_country } or $self->to_country;
+    my ( $self ) = @_;
+    
+    my $country_abbrevs = config_to_hash( 
+        cfg()->{ ups_information }->{ country_to_abbrev } 
+    );
+    
+    return $country_abbrevs->{ $self->to_country } or $self->to_country;
 }
 
-no warnings 'redefine';
+
 =item * from_country()
 
+
 =cut
+
 sub from_country
 {
-	my ( $self, $from_country ) = @_;
-	
-	if ( defined $from_country ) {
-		my $abbrevs = $self->config_to_hash( cfg()->{ ups_information }->{ abbrev_to_country } );
-		$from_country = $abbrevs->{ $from_country } || $from_country;
-	}
-	$self->{ from_country } = $from_country if defined $from_country;
-	
-	return $self->{ from_country };
+    my ( $self, $from_country ) = @_;
+    
+    if ( defined $from_country ) {
+        my $abbrevs = config_to_hash( cfg()->{ ups_information }->{ abbrev_to_country } );
+        $from_country = $abbrevs->{ $from_country } || $from_country;
+    }
+    $self->{ from_country } = $from_country if defined $from_country;
+    
+    return $self->{ from_country };
 }
-use warnings;
 
 
 =item * from_country_abbrev()
 
 =cut
+
 sub from_country_abbrev
 {
-	my ( $self ) = @_;
-	return unless $self->from_country;
-	
-	my $countries = $self->config_to_hash( cfg()->{ ups_information }->{ country_to_abbrev } );
-	my $from_country_abbrev = $countries->{ $self->from_country };
-	
-	return $from_country_abbrev;
-}
-
-
-=item * from_state( $from_state )
-
- $from_state   New from_state value. 
-
-=cut
-sub from_state
-{
-	my ( $self, $from_state ) = @_;
-	
-	if ( defined $from_state ) {
-		
-		#
-		# Conversions
-		#
-		# abbrev_to_state
-	}
-	$self->{ from_state } = $from_state if defined $from_state;
-	
-	return $self->{ from_state };
-}
-
-=item * from_state_abbrev()
-
-Returns the abbreviated form of 'from_state'.
-
-=cut
-sub from_state_abbrev
-{
-	my ( $self ) = @_;
-	
-	my $state_abbrevs = $self->config_to_hash( 
-		cfg()->{ ups_information }->{ state_to_abbrev } 
-	);
-	
-	return $state_abbrevs->{ $self->from_state } or $self->from_state;
-}
-
-=item * current_package()
-
-The Shipment object keeps an index of which package object is the current
-package (i.e. which package we are working on right now).  This just returns
-the corresponding package object, creating one if it doesn't exist. 
-
-=cut
-sub current_package {
-	my ( $self ) = @_;
-	
-	my $current_package_index = $self->current_package_index || 0;
-	if ( not defined $self->packages_index( $current_package_index ) ) {
-		debug( 'Current package (index: $current_package_index) not defined yet, creating one...' );
-		$self->packages_push( Business::Shipping::Package->new( id => $current_package_index ) );
-	}
-	
-	return $self->packages_index( $current_package_index ); 
-}
-
-sub default_package {
-	
-	my $self = shift;
-	
-	if ( not defined $self->packages_index( 0 ) ) {
-		debug( 'No default package defined yet, creating one...' );
-		$self->packages_push( Business::Shipping::Package->new() );
-	}
-	
-	return $self->packages_index( 0 ); 
+    my ( $self ) = @_;
+    return unless $self->from_country;
+    
+    my $countries = config_to_hash( cfg()->{ ups_information }->{ country_to_abbrev } );
+    my $from_country_abbrev = $countries->{ $self->from_country };
+    
+    return $from_country_abbrev || $self->from_country;
 }
 
 =item * domestic_or_ca()
 
-Returns 1 if the to_country value for this shipment is domestic (United
+Returns 1 (true) if the to_country value for this shipment is domestic (United
 States) or Canada.
 
+Returns 1 if to_country is not set.
+
 =cut
+
 sub domestic_or_ca
 {
-	my ( $self ) = @_;
-	
-	return 1 if not $self->to_country;
-	return 1 if $self->to_country eq 'Canada' or $self->domestic;
-	return 0;
+    my ( $self ) = @_;
+    
+    return 1 if not $self->to_country;
+    return 1 if $self->to_canada or $self->domestic;
+    return 0;
 }
 
 =item * intl()
 
- - uses to_country() value to calculate.
+Uses to_country() value to determine if the order is International (non-US).
 
- - returns 1/0 (true/false)
+Returns 1 or 0 (true or false).
 
 =cut
+
 sub intl
 {
-	my ( $self ) = @_;
-	
-	if ( $self->to_country ) {
-		if ( $self->to_country !~ /(US)|(United States)/) {
-			return 1;
-		}
-	}
-	
-	return 0;
+    my ( $self ) = @_;
+
+    if ( $self->to_country ) {
+        if ( $self->to_country !~ /(US)|(United States)/) {
+            return 1;
+        }
+    }
+    
+    return 0;
 }
 
 =item * domestic()
 
- - returns the opposite of intl()
+Returns the opposite of $self->intl
  
 =cut
-sub domestic { return ( not shift->intl ); }
+
+sub domestic
+{ 
+    my ( $self ) = @_;
+
+    if ( $self->intl ) {
+        return 0;
+    }
+    
+    return 1;
+}
 
 
-=item * from_canada()
- 
+=item * to_canada()
+
+UPS treats Canada differently.
+
 =cut
+
 sub from_canada
 {
-	my ( $self ) = @_;
-	
-	if ( $self->from_country ) {
-		if ( $self->from_country =~ /^((CA)|(Canada))$/i ) {
-			return 1;
-		}
-	}
-	
-	return 0;
+    my ( $self ) = @_;
+    
+    if ( $self->from_country ) {
+        if ( $self->from_country =~ /^((CA)|(Canada))$/i ) {
+            return 1;
+        }
+    }
+    
+    return 0;
 }
 
 =item * to_canada()
 
-Some people (UPS) treat Canada special, so we do too.
+UPS treats Canada differently.
 
 =cut
+
 sub to_canada
 {
-	my ( $self ) = @_;
-	
-	if ( $self->to_country ) {
-		if ( $self->to_country =~ /^((CA)|(Canada))$/i ) {
-			return 1;
-		}
-	}
-	
-	return 0;
+    my ( $self ) = @_;
+    
+    if ( $self->to_country ) {
+        if ( $self->to_country =~ /^((CA)|(Canada))$/i ) {
+            return 1;
+        }
+    }
+    
+    return 0;
 }
-
 
 =item * from_ak_or_hi()
 
-Alaska and Hawaii are treated specially by many shippers.
+Alaska and Hawaii are treated differently by many shippers.
 
 =cut
-sub from_ak_or_hi
-{
-	my ( $self ) = @_;
-	return unless $self->from_state;
-	
-	if ( $self->from_state =~ /(AK)|(HI)/i ) {
-		return 1;
-	}
-	
-	return 0;
-}
 
 sub to_ak_or_hi
 {
-	my ( $self ) = @_;
-	return unless $self->to_zip;
-	
-	my @ak_hi_zip_config_params = ( 
-		qw/ 
-		hi_special_zipcodes_124_224
-		hi_special_zipcodes_126_226
-		ak_special_zipcodes_124_224
-		ak_special_zipcodes_126_226
-		/
-	);
-	
-	for ( @ak_hi_zip_config_params ) {
-		my $zips = cfg()->{ ups_information }->{ $_ };
-		my $to_zip = $self->to_zip;
-		if ( $zips =~ /$to_zip/ ) { 
-			return 1;
-		}
-	}
-	
-	return;
+    my ( $self ) = @_;
+
+    return unless $self->to_zip;
+    
+    my @ak_hi_zip_config_params = ( 
+        qw/ 
+        hi_special_zipcodes_124_224
+        hi_special_zipcodes_126_226
+        ak_special_zipcodes_124_224
+        ak_special_zipcodes_126_226
+        /
+    );
+    
+    for ( @ak_hi_zip_config_params ) {
+        my $zips = cfg()->{ ups_information }->{ $_ };
+        my $to_zip = $self->to_zip;
+        if ( $zips =~ /$to_zip/ ) { 
+            return 1;
+        }
+    }
+    
+    return 0;
 }
 
+
+=item * add_package( %args )
+
+Adds a new package to the shipment.
+
+=cut
+
+# This is from 0.04.
+# Needs to be made compatible with the new version.
+
+sub add_package
+{
+    my ( $self, %options ) = @_;
+    
+    trace( 'called with' . uneval( @_ ) );
+    
+    if ( not $self->shipper ) {
+        error "Need shipper to get the package subclass.";
+        return;
+    }
+    
+    my $package;
+    eval { $package  = Business::Shipping->new_subclass( 'Package::'  . $self->shipper ); };
+    die "Error when creating Package subclass: $@" if $@;
+    die "package was undefined."  if not defined $package;
+    
+    $package->init( %options );
+    
+    # If the passed package has an ID.  Do not evaluate for perl trueness, 
+    # because 0 is a valid true value in this case.    
+    if ( defined $package->id() ) {
+        debug 'Using id in passed package';
+        $self->packages_set( $package->id => $package );
+        return 1;
+    }
+    
+    $self->packages_push( $package );
+    
+    return 1;
+}
+
+
 1;
+
+__END__
+
+=back
+
+=head1 AUTHOR
+
+Dan Browning E<lt>F<db@kavod.com>E<gt>, Kavod Technologies, L<http://www.kavod.com>.
+
+=head1 COPYRIGHT AND LICENCE
+
+Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
+This program is free software; you may redistribute it and/or modify it under
+the same terms as Perl itself. See LICENSE for more info.
+
+=cut

@@ -9,8 +9,8 @@ use Business::Shipping::Package::UPS;
 use Business::Shipping::Package::USPS;
 use Business::Shipping::RateRequest;
 use Business::Shipping::RateRequest::Online;
-use Business::Shipping::RateRequest::Online::UPS;
-use Business::Shipping::RateRequest::Online::USPS;
+use Business::Shipping::UPS_Online::RateRequest;
+use Business::Shipping::USPS_Online::RateRequest;
 
 
 #show( 'Business::Shipping' );
@@ -20,20 +20,20 @@ use Business::Shipping::RateRequest::Online::USPS;
 #show( 'Business::Shipping::RateRequest::Online' );
 
 
-#show( 'Business::Shipping::RateRequest::Online::UPS' );
+#show( 'Business::Shipping::UPS_Online::RateRequest' );
 
-#use Business::Shipping::RateRequest::Online::UPS;
-#my $ups_online_rate_request = Business::Shipping::RateRequest::Online::UPS->new();
+#use Business::Shipping::UPS_Online::RateRequest;
+#my $ups_online_rate_request = Business::Shipping::UPS_Online::RateRequest->new();
 #print $ups_online_rate_request->required();
 
 my $ups_online_rate_request = Business::Shipping->rate_request(
-	shipper => 'USPS',
-	service => 'Priority',
-	from_country => 'US',
-	to_country => 'US',
-	from_zip => '23943',
-	to_zip => '99999',
-	weight => 23.3,	
+    shipper => 'USPS',
+    service => 'Priority',
+    from_country => 'US',
+    to_country => 'US',
+    from_zip => '23943',
+    to_zip => '99999',
+    weight => 23.3,    
 );
 
 use Data::Dumper;
@@ -51,8 +51,8 @@ use Business::Shipping::RateRequest::Online;
 my $online_rate_request = Business::Shipping::RateRequest::Online->new();
 show_ary( $online_rate_request->required2() );
 
-use Business::Shipping::RateRequest::Online::UPS;
-my $ups_online_rate_request = Business::Shipping::RateRequest::Online::UPS->new();
+use Business::Shipping::UPS_Online::RateRequest;
+my $ups_online_rate_request = Business::Shipping::UPS_Online::RateRequest->new();
 show_ary( $ups_online_rate_request->required2() );
 =cut
 
@@ -60,8 +60,8 @@ show_ary( $ups_online_rate_request->required2() );
 #my $online_rate_request = Business::Shipping::RateRequest::Online->new();
 #show_ary( $online_rate_request->find_required() );
 
-#use Business::Shipping::RateRequest::Online::UPS;
-#my $ups_online_rate_request = Business::Shipping::RateRequest::Online::UPS->new();
+#use Business::Shipping::UPS_Online::RateRequest;
+#my $ups_online_rate_request = Business::Shipping::UPS_Online::RateRequest->new();
 #print join( ', ',  $ups_online_rate_request->required() ) . "\n";
 #
 #print "showing array: " . show_ary( $ups_online_rate_request->find_required() ) . "\n";
@@ -70,19 +70,19 @@ show_ary( $ups_online_rate_request->required2() );
 
 sub show_ary
 {
-	return print "\t" . join( ', ', @_ ) . "\n";
+    return print "\t" . join( ', ', @_ ) . "\n";
 }
 
 sub show
 {
-	my $class = shift;
-	my $self = eval "require $class; $class->new()";
-	die $@ if $@;
-	my $name = scalar( $self );
-	( $name ) = split ( '=', $name ); 
-	print "$name\n";
-	print "\tRequired = " . join( ', ', $self->required() ) . "\n";
-	#print "\tOptional = " . join( ', ', $self->optional() ) . "\n";
-	#return;
-	return print "\t" . join( ', ', @_ ) . "\n\n\n";
+    my $class = shift;
+    my $self = eval "require $class; $class->new()";
+    die $@ if $@;
+    my $name = scalar( $self );
+    ( $name ) = split ( '=', $name ); 
+    print "$name\n";
+    print "\tRequired = " . join( ', ', $self->required() ) . "\n";
+    #print "\tOptional = " . join( ', ', $self->optional() ) . "\n";
+    #return;
+    return print "\t" . join( ', ', @_ ) . "\n\n\n";
 }

@@ -1,8 +1,14 @@
 We greatly appreciate the assistance that all of the following individuals have 
 contributed.
 
- * Mike Heins <mike@perusion.com> first wrote some offline UPS and USPS modules
-   for the Interchange project, I later adapted them for use here.
+ * Rusty Conover <rconover@infogears.com> contributed the following modules:
+   - Tracking
+   - Tracking::USPS
+   - Tracking::UPS
+ 
+ * Mike Heins <mike@perusion.com> wrote a complete offline UPS and USPS cost
+   estimation system for the Interchange project.  They were adapted for use 
+   with Business::Shipping.
    
  * Kevin Old <kold@carolina.rr.com> got the USPS XML generator working.
  
@@ -16,5 +22,5 @@ contributed.
 
  * Richard Hornsby <rhornsby@io.osuedc.org> reported a bug that was fixed in
    version 1.00.
-
+   
 Thank you.

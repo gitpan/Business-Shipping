@@ -18,30 +18,39 @@ new-release - the Business::Shipping release script.
  
  #
  # Make sure all the files (documentation, etc.) are up to date.
+ #
+ # Make sure that the manifest didn't get any extra stuff:
+ # rm MANIFEST; make manifest; svn diff MANIFEST | more
+ #
+ # UPDATE META.yml
+ #
  # Then commit to CVS
  #
- perl Makefile.PL 
- make docs manifest && make && make test
- cvs commit
+ perl Makefile.PL
+ make docs && make && make test
+ svn commit
  
  #
  # Delete old file, make new file, and upload to server.
  # Upload the new version to CPAN, for PAUSE
  # Update to the next verision in Makefile.PL (if you haven't already)
  #
- export VERSION_AFTER_THIS_UPLOAD=1.07
+ export VERSION_AFTER_THIS_UPLOAD=1.52
  rm Business-Shipping-*.tar.gz
  make tardist
  bin/new-release.pl Business-Shipping-*.tar.gz
  cpan-upload -user `cat ~/.apps/.PAUSE-user` -password `cat ~/.apps/.PAUSE-password` -mailto 'db@kavod.com' -non_interactive Business-Shipping-*.tar.gz
- perl -pi -e "s/\$VERSION = \'.\...\'/\$VERSION = \'${VERSION_AFTER_THIS_UPLOAD}\'/g" Makefile.PL
+ #
+ # This version updater doesn't work now that I've changed the Makefile.PL.
+ # perl -pi -e "s/\$VERSION = \'.\...\'/\$VERSION = \'${VERSION_AFTER_THIS_UPLOAD}\'/g" Makefile.PL
+ #
  
 =cut 
 
 my ( $file ) = @ARGV;
 
 print "Usage: $PROGRAM_NAME Business-Shipping-n.nn.tar.gz\n" and exit 
-	unless $file;
+    unless $file;
 
 $file =~ m/^(Business-Shipping-\d\.\d\d)\.tar\.gz$/;
 my $version = $1;
@@ -84,8 +93,8 @@ myexec( $cmd );
 
 sub myexec
 {
-	my $cmd = shift;
-	print "Going to execute \"$cmd\"...\n";
-	return system ( $cmd );
+    my $cmd = shift;
+    print "Going to execute \"$cmd\"...\n";
+    return system ( $cmd );
 }
 
