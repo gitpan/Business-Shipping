@@ -1,0 +1,128 @@
+######################################################
+##  General TODO
+######################################################
+
+ * [DOC] Include the terms of use for each provider.
+ 
+ * [BUG] When the internet is down, we should give a more useful error message
+   than the following:
+	 "Business::Shipping::RateRequest::Online::USPS::_handle_response: ()
+     File does not exist:  at .../RateRequest/Online/USPS.pm line 202"
+ 
+ * [BUG] Only Cache the response if it was a success (very important).
+ 
+ * [BUG] Error on missing arguments isn't working very well ( user_id, password)
+ 
+ * [BUG] Why do I have to 'use' all the modules in order for it to work?
+ 
+ * [ENH] Country name translator strings to data outside your program.
+ 	# TODO: Move all of this, and any other data that is currently mixed with 
+	# code.
+	# A simple, file-based configuration system would be nice, like Interchange.
+	# Perhaps XML::Simple Configuration files?  Other?  Shipping::Config module
+	# will provide parser, importer.  Any internal modules that use 
+	# configuration will go through that module.  (it's an idea, anyway) 
+ 
+ * [ENH] Enhance the debugging/error handling features: allow user to pass in a 
+   callback ref conforming to some (customizable?) calling standard. 
+
+ * [ENH] Is non-ssl communication with either provider possible?
+ 
+ * [ENH] Migrate the "retry on failure" code from business-shipping.tag to 
+   Business::Shipping proper.  Default to tries=2, but allow that to be
+   overridden.  ("Failure" means HTTP 500 errors.)
+
+ * [ENH] FedEx module: Christopher L Wenham from Synesmedia has created an 
+   Interchange usertag that uses FedEx::DirectConnect for various functions.  
+   Evaluate.
+  
+ * [ENH] Business::Shipping::OldUPS
+    - Doesn't require signup (no username/password, etc.)
+    - Utilize the new Business::UPS 2.0.
+ 
+ * [ENH] Create Bundle::BusinessShipping
+ 
+ * [ENH] The Shipping module itself should be able to be queried for what shippers it
+   handles. Each shipper should be able to be queried for what services it 
+   provides... maybe code would look like this:
+
+	use Business::Shipping; 
+	
+	# Query the module for installed shipper specific modules.
+	my @shippers = Business::Shipping::available_shippers(); 
+	
+	my %shipping_option; 
+	for my $shipper (@shippers) { 
+	
+		# Services would be Ground, 2nd day air, things like that.
+		my @services = $shipper->services();
+	 
+		for my $service (@services) { 
+	
+			# The $package would have been previously generated.
+			$shipping_option{$shipper->name}->{$service} =
+				$shipper->rate($service, $package); 
+	
+		}
+	}
+	
+ * [ENH] Additionall module flexibility
+	- Allow the use of Net::SSLeay as well as Crypt::SSLeay
+
+ * [ENH] New feature ideas:
+ 	- Address Verification
+	- Shipping status (package tracking)
+	- Service Availability
+	- Electronic Merchandise Return?
+	- Shipping label generation?
+	- Customs forms?
+	- Shipping time (how long till it gets there)?
+	- Delivery/Signature confirmation?
+
+######################################################
+##  USPS TODO
+######################################################
+ 
+ * [BUG] Find a better way to correlate "Air mail" with all the various names
+   it is called by each country.
+ 
+ * [BUG] Not correctly realizing when there is an error (<Error><Number>...)
+   - Perhaps because we don't ( KeepRoot => 1, ) on the XMLin()?
+
+ * [ENH] Enable Cache for USPS.
+ 
+ * [ENH] Support get_charges( 'service' ) for domestic types.
+
+ * [ENH] Use the International Country Listing
+	- http://pe.usps.gov/cpim/ftp/manuals/Imm/Immctry.pdf
+ 
+######################################################
+##  UPS TODO
+######################################################
+ 
+ * [BUG] Fix the multi-package API for UPS.  
+   # TODO: Move to a different XML generation scheme, since all the packages 
+   #       in a multi-package shipment will have the name "Package".
+   # TODO: multi-package support: loop over the packages
+   
+ * [BUG] Return error message if trying to ship to military americas:
+   - USP does not ship to APO or FPO addresses.
+
+ * [BUG] Be able to handle "mal-formed XML doc" error return from UPS.  
+ 	- Right now, it still tries to parse as an XML doc.
+
+ * [ENH] Allow better names, like "One Day Air" instead of 1DA.
+   - Better names for packaging too (instead of numbers).
+ 
+ * [ENH] Test for thread-safety-ness.	
+ 
+ * [ENH] UPS support for sending multiple simultaneous requests
+	- (USPS had built-in support in the API for Intl)
+ 	- If they don't support it, try LWP::Parallel::UserAgent.
+	
+######################################################
+##  Interchange UserTag TODO
+######################################################
+
+ * [ENH] Test for ability to use within Safe?
+	([perl]$Tag->ups_query('', '', '');[/perl]) 
