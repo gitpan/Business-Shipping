@@ -1,33 +1,18 @@
 NAME
     Business::Shipping - API for shipping-related tasks
 
-REQUIRED MODULES
-     Archive::Zip (any)
-     Bundle::DBD::CSV (any)
-     Cache::FileCache (any)
-     Class::MethodMaker (any)
-     Config::IniFiles (any)
-     Crypt::SSLeay (any)
-     Data::Dumper (any)
-     Devel::Required (0.03)
-     Error (any)
-     LWP::UserAgent (any)
-     Math::BaseCnv (any)
-     XML::DOM (any)
-     XML::Simple (2.05)
-
 SYNOPSIS
-    Example usage for a rating request:
+    Example rate request:
 
             use Business::Shipping;
         
             my $rate_request = Business::Shipping->rate_request(
-                    shipper                 => 'Offline::UPS',
-                    service                 => 'GNDRES',
-                    from_zip                => '98682',
-                    to_zip                  => '98270',
-                    weight                  => 5.00,
-            );
+                    shipper         => 'Offline::UPS',
+                    service         => 'GNDRES',
+                    from_zip        => '98682',
+                    to_zip          => '98270',
+                    weight          =>  5.00,
+            );      
         
             $rate_request->submit() or die $rate_request->error();
         
@@ -44,10 +29,25 @@ ABSTRACT
      * Online UPS (using the Internet and UPS servers)
      * Offline UPS (using tables stored locally)
      * Online USPS
-     * Offline FedEX and USPS are planned for support in the future.
 
-    An object is returned if the operation is successful, or 'undef'
-    otherwise.
+    Offline FedEX and USPS are planned for support in the future.
+
+REQUIRED MODULES
+     Archive::Zip (any)
+     Bundle::DBD::CSV (any)
+     Cache::FileCache (any)
+     Class::MethodMaker (any)
+     Config::IniFiles (any)
+     Crypt::SSLeay (any)
+     Data::Dumper (any)
+     Devel::Required (0.03)
+     Error (any)
+     Getopt::Mixed (any)
+     LWP::UserAgent (any)
+     Math::BaseCnv (any)
+     Scalar::Util (1.10)
+     XML::DOM (any)
+     XML::Simple (2.05)
 
 MULTI-PACKAGE API
   Online::UPS Example
@@ -156,12 +156,12 @@ CLASS METHODS
     * weight
         Weight of the shipment, in pounds, as a decimal number.
 
-    * config_to_hash( $ary, $del )
-                $ary    Key/value pairs
-                $del    Delimiter for the above array (tab is default)
+AUTHOR
+     Dan Browning         <db@kavod.com>
+     Kavod Technologies   http://www.kavod.com
 
-        Builds a hash from an array of lines containing key / value pairs,
-        like so:
-
-        key1 value1 key2 value2 key3 value3
+COPYRIGHT AND LICENCE
+    Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights
+    reserved. Licensed under the GNU Public Licnese (GPL). See COPYING for
+    more info.
 

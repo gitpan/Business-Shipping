@@ -5,23 +5,27 @@ use strict;
 use Business::Shipping;
 
 my $rate_request = Business::Shipping->rate_request(
-	event_handlers => {
-		trace 	=> 'STDERR',
-		debug 	=> 'STDERR',
-		error	=> 'STDERR',
+	'user_id' => $ENV{ USPS_USER_ID },
+	'password' => $ENV{ USPS_PASSWORD }, 
+	'event_handlers' => {
+		'debug3'	=> 'STDERR',
+		'debug'	=> 'STDERR',
+		'error' => 'croak',
+		#'trace' => 'STDERR',
 	},
-	from_zip	=> '98682',
-	from_state	=> 'WA',
 	
-        shipper =>      'Offline::UPS',
-        service =>      'XDM',
-        to_country =>   'NO',
-        weight =>       '5.9',
-        to_zip =>       'N-7025',
-
+	'from_country' => "US",
+	'to_country' => "US",
+	'service' => "Express",
+	'from_zip' => "97214",
+	'weight' => "0.75",
+	'to_zip' => "98682",
+	'cache' => "1",
+	'shipper' => "Online::USPS",
+	
+	#'to_city' => 'Vancouver',
 );
 
 $rate_request->submit() or die $rate_request->error();
 
-
-print "offline = " . $rate_request->total_charges() . "\n";
+print $rate_request->total_charges() . "\n";

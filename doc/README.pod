@@ -22,8 +22,10 @@ Business::Shipping - Shipping cost calculator for UPS and USPS
  Data::Dumper (any)
  Devel::Required (0.03)
  Error (any)
+ Getopt::Mixed (any)
  LWP::UserAgent (any)
  Math::BaseCnv (any)
+ Scalar::Util (1.10)
  XML::DOM (any)
  XML::Simple (2.05)
 

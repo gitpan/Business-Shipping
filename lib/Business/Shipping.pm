@@ -1,6 +1,6 @@
 # Business::Shipping - Shipping related API's
 #
-# $Id: Shipping.pm,v 1.14 2004/01/30 18:46:55 db-ship Exp $
+# $Id: Shipping.pm,v 1.16 2004/02/08 00:42:23 db-ship Exp $
 #
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 #
@@ -13,35 +13,19 @@ package Business::Shipping;
 
 Business::Shipping - API for shipping-related tasks
 
-=head1 REQUIRED MODULES
-
- Archive::Zip (any)
- Bundle::DBD::CSV (any)
- Cache::FileCache (any)
- Class::MethodMaker (any)
- Config::IniFiles (any)
- Crypt::SSLeay (any)
- Data::Dumper (any)
- Devel::Required (0.03)
- Error (any)
- LWP::UserAgent (any)
- Math::BaseCnv (any)
- XML::DOM (any)
- XML::Simple (2.05)
-
 =head1 SYNOPSIS
 
-Example usage for a rating request:
+Example rate request:
 
 	use Business::Shipping;
 	
 	my $rate_request = Business::Shipping->rate_request(
-		shipper 		=> 'Offline::UPS',
-		service 		=> 'GNDRES',
-		from_zip		=> '98682',
-		to_zip			=> '98270',
-		weight			=> 5.00,
-	);
+		shipper 	=> 'Offline::UPS',
+		service 	=> 'GNDRES',
+		from_zip	=> '98682',
+		to_zip		=> '98270',
+		weight		=>  5.00,
+	);	
 	
 	$rate_request->submit() or die $rate_request->error();
 	
@@ -61,9 +45,26 @@ Business::Shipping is an API for shipping-related tasks.
  * Online UPS (using the Internet and UPS servers)
  * Offline UPS (using tables stored locally)
  * Online USPS
- * Offline FedEX and USPS are planned for support in the future.
 
-An object is returned if the operation is successful, or 'undef' otherwise.
+Offline FedEX and USPS are planned for support in the future.
+
+=head1 REQUIRED MODULES
+
+ Archive::Zip (any)
+ Bundle::DBD::CSV (any)
+ Cache::FileCache (any)
+ Class::MethodMaker (any)
+ Config::IniFiles (any)
+ Crypt::SSLeay (any)
+ Data::Dumper (any)
+ Devel::Required (0.03)
+ Error (any)
+ Getopt::Mixed (any)
+ LWP::UserAgent (any)
+ Math::BaseCnv (any)
+ Scalar::Util (1.10)
+ XML::DOM (any)
+ XML::Simple (2.05)
 
 =head1 MULTI-PACKAGE API
 
@@ -138,56 +139,9 @@ overwritten by a new error.
 
 =head1 CLASS METHODS
 
-=head2 rate_request()
-
-This method is used to request shipping rate information from online providers
-or offline tables.  A hash is accepted as input with the following key values:
-
-=over 4
-
-=item * shipper
-
-The name of the shipper to use. Must correspond to a module by the name of:
-C<Business::Shipping::RateRequest::SHIPPER>.  For example, "Offline::UPS".
-
-=item * user_id
-
-A user_id, if required by the provider. Online::USPS and Online::UPS require
-this, while Offline::UPS does not.
-
-=item * password
-
-A password,  if required by the provider. Online::USPS and Online::UPS require
-this, while Offline::UPS does not.
-
-=item * service
-
-A valid service name for the provider. See the corresponding module 
-documentation for a list of services compatible with the shipper.
-
-=item * from_zip
-
-The origin zipcode.
-
-=item * from_state
-
-The origin state.  Required for Offline::UPS.
-
-=item * to_zip
-
-The destination zipcode.
-
-=item * to_country
-
-The destination country.  Required for international shipments only.
-
-=item * weight
-
-Weight of the shipment, in pounds, as a decimal number.
-
 =cut
 
-$VERSION = do { my @r=(q$Revision: 1.14 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r };
+$VERSION = do { my @r=(q$Revision: 1.16 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r };
 
 use strict;
 use warnings;
@@ -239,15 +193,64 @@ sub validate
 	
 	if ( @missing ) {
 		$self->error( "Missing required argument " . join ", ", @missing );
-		debug( "returning undef" );
-		return undef;
+		$self->invalid( 1 );
+		return;
 	}
 	else {
-		debug3( "returning success" );
 		return 1;
 	}
 }
-	
+
+=head2 rate_request()
+
+This method is used to request shipping rate information from online providers
+or offline tables.  A hash is accepted as input with the following key values:
+
+=over 4
+
+=item * shipper
+
+The name of the shipper to use. Must correspond to a module by the name of:
+C<Business::Shipping::RateRequest::SHIPPER>.  For example, C<Offline::UPS>.
+
+=item * user_id
+
+A user_id, if required by the provider. Online::USPS and Online::UPS require
+this, while Offline::UPS does not.
+
+=item * password
+
+A password,  if required by the provider. Online::USPS and Online::UPS require
+this, while Offline::UPS does not.
+
+=item * service
+
+A valid service name for the provider. See the corresponding module 
+documentation for a list of services compatible with the shipper.
+
+=item * from_zip
+
+The origin zipcode.
+
+=item * from_state
+
+The origin state.  Required for Offline::UPS.
+
+=item * to_zip
+
+The destination zipcode.
+
+=item * to_country
+
+The destination country.  Required for international shipments only.
+
+=item * weight
+
+Weight of the shipment, in pounds, as a decimal number.
+
+=back 
+
+=cut
 sub rate_request
 {
 	my $class = shift;
@@ -312,66 +315,18 @@ sub new_subclass
 	return $new_sub_object;	
 }
 
-sub _translate_simple
-{
-	my ( $self, $value_to_translate, $translation_config_param ) = @_;
-	carp "Missing values" unless $value_to_translate and $translation_config_param;
-	debug( "Going to translate $value_to_translate ( " . ( $self->$value_to_translate() || 'undef' ) . " ) using $translation_config_param" );
+sub config_to_hash			{ return &Business::Shipping::Config::config_to_hash; 			}
+sub config_to_ary_of_hashes	{ return &Business::Shipping::Config::config_to_ary_of_hashes;	}
 
-	my $aryref = cfg()->{ ups_information }->{ $translation_config_param };
-	my $hash = $self->config_to_hash( $aryref, "\t" );
-	my $new_value = $self->_hash_translator( $self->$value_to_translate(), $hash );
-	debug( "Setting $value_to_translate to new value: " . ( $new_value || 'undef' ) );
-	$self->$value_to_translate( $new_value );
-	
-	return;
-}
+=head1 AUTHOR
 
-sub simple_translate_config
-{
-	my ( $self, $config_aryref ) = @_;
-	
-	for ( @$config_aryref ) {
-		my ( $value_to_translate, $translation_config_param ) = split( "\t", $_ );
-		next unless $value_to_translate and $translation_config_param;
-		$self->_translate_simple( $value_to_translate, $translation_config_param );
-	}
-	
-	return;
-}
+ Dan Browning         <db@kavod.com>
+ Kavod Technologies   http://www.kavod.com
 
-=item * config_to_hash( $ary, $del )
+=head1 COPYRIGHT AND LICENCE
 
-	$ary	Key/value pairs
-	$del	Delimiter for the above array (tab is default)
-
-Builds a hash from an array of lines containing key / value pairs, like so:
-
-key1	value1
-key2	value2
-key3	value3
-
-=cut
-sub config_to_hash
-{
-	my ( $self, $ary, $delimiter ) = @_;
-	return unless $ary;
-	#
-	# TODO: check ref( $ary ) eq 'ARRAY'
-	#
-	
-	$delimiter ||= "\t";
-	
-	my $hash = {};
-	foreach my $line ( @$ary ) {
-		my ( $key, $val ) = split( $delimiter, $line );
-		$hash->{ $key } = $val;
-	}
-	
-	return $hash;	
-}
-
-=back
+Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved. 
+Licensed under the GNU Public Licnese (GPL).  See COPYING for more info.
 
 =cut
 

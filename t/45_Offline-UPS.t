@@ -209,7 +209,7 @@ SKIP: {
 );
 
 $shipment = test( %test );
-ok( $shipment->total_charges(),		'UPS offline intl to gb' );
+ok( $shipment->total_charges(),		'UPS offline express to gb' );
 print "Offline: intl to gb " . $shipment->total_charges() . "\n";
 
 SKIP: {
@@ -396,6 +396,54 @@ SKIP: {
 	$shipment_online = test_online( %test );
 	ok( $shipment_online->total_charges(),	"UPS Online: " . $this_test_desc . $shipment_online->total_charges() );	
 }
+
+
+###################
+##  NetherLands 
+###################
+
+%test = (
+		from_zip	=> '98682',
+		from_state	=> 'Washington',
+        service =>      'XPD',
+        to_country =>   'NL',
+        weight =>       '12.75',
+);
+$this_test_desc = "Netherlands XPD: ";
+
+$shipment = test( %test );
+ok( $shipment->total_charges(),	 "UPS Offline: " . $this_test_desc );
+print "UPS Offline: " . $this_test_desc . $shipment->total_charges() . "\n";
+
+###################
+##  Israel 
+###################
+
+%test = (
+        from_zip => '98682',
+		from_state => 'Washington',
+		shipper =>      'Offline::UPS',
+        service =>      'XPR',
+        to_country =>   'IL',
+        weight =>       '1.75',
+        to_zip =>       '034296',
+);
+$this_test_desc = "Israel XPR: ";
+
+$shipment = test( %test );
+ok( $shipment->total_charges(),	 "UPS Offline: " . $this_test_desc );
+print "UPS Offline: " . $this_test_desc . $shipment->total_charges() . "\n";
+
+SKIP: {
+	skip( $ups_online_msg, 1 ) 
+		unless ( $ENV{ UPS_USER_ID } and $ENV{ UPS_PASSWORD } and $ENV{ UPS_ACCESS_KEY } );
+
+	$shipment_online = test_online( %test );
+	ok( $shipment_online->total_charges(),	"UPS Online: " . $this_test_desc . $shipment_online->total_charges() );	
+}
+
+
+
 
 #TODO: {
 #      local $TODO = "Not yet implmented.";

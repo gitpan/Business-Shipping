@@ -1,6 +1,6 @@
 # Business::Shipping::RateRequest::Offline::UPS
 #
-# $Id: UPS.pm,v 1.13 2004/01/30 18:46:55 db-ship Exp $
+# $Id: UPS.pm,v 1.17 2004/02/08 00:42:24 db-ship Exp $
 #
 # Copyright (c) 2003 Interchange Development Group
 # Copyright (c) 2003,2004 Kavod Technologies, Dan Browning. 
@@ -16,7 +16,7 @@
 
 package Business::Shipping::RateRequest::Offline::UPS;
 
-$VERSION = do { my @r=(q$Revision: 1.13 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r };
+$VERSION = do { my @r=(q$Revision: 1.17 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r };
 
 use strict;
 use warnings;
@@ -33,6 +33,7 @@ use Fcntl ':flock';
 use File::Find;
 use File::Copy;
 use Math::BaseCnv;
+use Scalar::Util 1.10;
 use Business::Shipping::CustomMethodMaker
 	new_with_init => 'new',
 	new_hash_init => 'hash_init',
@@ -126,17 +127,19 @@ sub convert_ups_rate_file
 		last if ( $line =~ /^Weight Not To Exceed/ );
 	}
 	
-	# Remove "Weight Not To " from this line
-	$line =~ s/^Weight Not To//;
-	
-	# Remove all occurences of "Zone" from this line
-	$line =~ s/Zone//g;
-	
-	# Remove all the left-over spaces.
-	$line =~ s/ //g;
-	
-	# Now-adjusted Header
-	print NEW_RATE_FILE $line if $line;
+	if ( $line ) {
+		# Remove "Weight Not To " from this line
+		$line =~ s/^Weight Not To//;
+		
+		# Remove all occurences of "Zone" from this line
+		$line =~ s/Zone//g;
+		
+		# Remove all the left-over spaces.
+		$line =~ s/ //g;
+		
+		# Now-adjusted Header
+		print NEW_RATE_FILE $line;
+	}
 	
 	#
 	# Remove blank lines before the data starts, if any
@@ -253,7 +256,6 @@ sub do_convert_data
 			return if ( $_ eq $cvs_files_skip_regex );
 		}
 		
-		
 		# Only csv files
 		return if ( $_ !~ /\.csv$/i );
 		
@@ -299,7 +301,12 @@ sub do_convert_data
 		$_ = rename_tables_that_start_with_numbers( $_);
 		$_ = rename_tables_that_have_a_dash( $_ );
 	}
-	Business::Shipping::Util::remove_windows_carriage_returns( 'ewwzone.csv' );
+	#
+	# Convert the ewwzone.csv file manually, since it is skipped, above.
+	#
+	Business::Shipping::Util::remove_windows_carriage_returns( 
+		cfg()->{ general }->{ data_dir } . '/ewwzone.csv' 
+	);
 	$self->convert_zone_file( 'ewwzone.csv' );
 	
 }
@@ -430,15 +437,10 @@ sub validate
 	my ( $self ) = @_;
 	trace '()';
 	
-	if ( $self->to_canada ) {
-		if ( $self->service eq 'XDM' ) {
-			$self->error( 
-				  "Offline::UPS cannot estimate Express Plus to Canada, because "
-				. "not all zip codes are supported."
-			);
-			
-			return;
-		}
+	return if ( ! $self->SUPER::validate );
+	if ( $self->service and $self->service eq 'GNDRES' and $self->to_ak_or_hi ) {
+		$self->error( "Invalid Rate Request" );
+		$self->invalid( 1 );
 	}
 	
 	return 1;
@@ -567,9 +569,10 @@ sub ups_name_to_table
 	$self->Zones() = (
 		'Canada' => {
 			'zone_data' => [
-				'first line of zone file',
-				'second line',
-				'etc.',
+				'low	high	service1	service2',
+				'004	005		208			209',
+				'006	010		208			209',
+				'Canada	Canada	504			504',
 			]
 		}
 	)
@@ -639,11 +642,35 @@ sub calc_zone_data
 			#
 			# Split into a tab-separated format.
 			#
+			my $count;
 			for(@zone[1 .. $#zone]) {
-				#my $before = $_;
-				s/^\s*(\w+)\s*-\s*(\w+),/$1 . ',' . $2 . ','/e;
+				#debug( "before = $_" );
+				my @columns = split( ',', $_ );
+				if ( $columns[ 0 ] =~ /-/ ) {
+					#
+					# "601-605" =>	"601,605"
+					#
+					my ( $low, $high ) = split( '-', $columns[ 0 ] );
+					splice( @columns, 0, 1, ( $low, $high ) );
+
+				}
+				else {
+					#
+					# Copy the country name (or zip with no range) into the second field.
+					# "601" =>		"601,601"
+					#
+					splice( @columns, 1, 0, ( $columns[ 0 ]) );
+				}
+				$_ = join( ',', @columns );
+				
+				#
+				# ","		=>	"	"
+				#
 				s/\s*,\s*/\t/g;
-				#my $after = $_;
+
+				#debug( "after = $_" );
+				
+				
 			}
 		}
 		$this_zone->{ zone_data } = \@zone;
@@ -820,8 +847,8 @@ sub calc_cost
 	@fieldnames = split( /\t/, $zdata->[ 0 ] ) if $zdata->[ 0 ];
 	debug( "Looking for $type in fieldnames: " . ( join( ' ', @fieldnames ) || 'undef' ) );
 	
-	for($i = 1; $i < @fieldnames; $i++) {
-		debug3( "checking $fieldnames[$i] eq $type" );
+	for($i = 0; $i < @fieldnames; $i++) {
+		debug( "checking $fieldnames[$i] eq $type" );
 		next unless $fieldnames[ $i ] eq $type;
 		$point = $i;
 		last;
@@ -831,25 +858,18 @@ sub calc_cost
 		return 0;
 	}
 	else {
-		debug( "point (i.e. field index) found!  It is $point.  Fieldname referenced by point is $fieldnames[$point]" );
-	}
+		#
+		# We have to add one because the International files don't have a "low	high", just "country".
+		#
+		$point++ if ! $self->domestic_or_ca;
 
-	#
-	# TODO: EAS
-	# 
-	my $eas_point;
-	my $eas_zone;
-	if($zref->{eas}) {
-		for($i = 2; $i < @fieldnames; $i++) {
-			next unless $fieldnames[$i] eq $zref->{eas};
-			$eas_point = $i;
-			last;
-		}
+		debug( "point (i.e. field index) found!  It is $point.  Fieldname referenced by point is $fieldnames[$point]" );
 	}
 	
 	debug( "point = $point, looking in zone data..." );
 	for ( @{ $zdata }[ 1.. $#{ $zdata } ] ) {
 		@data = split /\t/, $_;
+		debug( "data = " . join( ',', @data ) );
 		if ( $self->current_shipment->domestic_or_ca ) {
 
 			my $low		= $data[0];
@@ -866,18 +886,17 @@ sub calc_cost
 				$high	= cnv( $high, 36, 10 );
 				$goal	= cnv( $goal, 36, 10 );
 			}
-			
+			#debug( "checking if $goal is between $low and $high" );
 			next unless $goal and $low and $high;
 			next unless $goal ge $low and $goal le $high;
-			debug( "setting zone to $data[$point]" );
+			debug( "setting zone to $data[$point] (the line was: " . join( ',', @data ) . ")" );
 			$zone = $data[ $point ];
 		}
 		else {
 			next unless ( $data[0] and $key eq $data[0] );
 			$zone = $data[ ( $point - 1) ];
+			debug( "found key! data = " . join( ',', @data ) );
 		}
-		
-		$eas_zone = $data[$eas_point] if defined $eas_point;
 		last;
 	}
 	
@@ -889,13 +908,13 @@ sub calc_cost
 	}
 	elsif ( ! $zone or $zone eq '-') {
 		$self->error( "No $type shipping allowed for $key." );
+		$self->invalid( 1 );
 		return 0;
 	}
 
 	my $cost;
 	debug( "zone=$zone, going to call record( $table, $zone, $weight ) " );
 	$cost =  record( $table, $zone, $weight );
-	$cost += record( $table, $zone, $eas_zone )  if defined $eas_point;
 	
 	if ( ! $cost ) {
 		$self->error( "Zero cost returned for mode $type, geo code (key) $key.");
@@ -921,7 +940,7 @@ Hawaii and Alaska have special per-zipcode zone exceptions for 1da/2da.
 sub special_zone_hi_ak
 {
 	my ( $self, $type, $zone ) = @_;
-	trace( "( $type, $zone )" );
+	trace( '( ' . ( $type ? $type : 'undef' ) . ', ' . ( $zone ? $zone : 'undef' ) . ' )' );
 	
 	return $zone unless $type and ( $type eq 'NextDayAir' or $type eq '2ndDayAir' ); 
 	
@@ -1028,7 +1047,7 @@ sub calc_zone_info
 	#
 	# Only apply if the zone is purly numeric.
 	#
-	if ( $zone =~ /^\d+$/ ) {
+	if ( Scalar::Util::looks_like_number( $zone ) ) {
 		for ( my $c = 10; $c >= 1; $c-- ) {
 			if ( ! -f $zone_file ) {
 				debug( "zone_file $zone_file doesn't exist, trying others nearby..." );
