@@ -1,20 +1,196 @@
 # Business::Shipping - Shipping related API's
 #
-# $Id: Shipping.pm,v 1.11 2004/01/07 01:17:41 db-ship Exp $
+# $Id: Shipping.pm,v 1.14 2004/01/30 18:46:55 db-ship Exp $
 #
-# Copyright (c) 2003 Kavod Technologies, Dan Browning. All rights reserved. 
+# Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 #
 # Licensed under the GNU Public Licnese (GPL).  See COPYING for more info.
 # 
 
 package Business::Shipping;
 
+=head1 NAME
+
+Business::Shipping - API for shipping-related tasks
+
+=head1 REQUIRED MODULES
+
+ Archive::Zip (any)
+ Bundle::DBD::CSV (any)
+ Cache::FileCache (any)
+ Class::MethodMaker (any)
+ Config::IniFiles (any)
+ Crypt::SSLeay (any)
+ Data::Dumper (any)
+ Devel::Required (0.03)
+ Error (any)
+ LWP::UserAgent (any)
+ Math::BaseCnv (any)
+ XML::DOM (any)
+ XML::Simple (2.05)
+
+=head1 SYNOPSIS
+
+Example usage for a rating request:
+
+	use Business::Shipping;
+	
+	my $rate_request = Business::Shipping->rate_request(
+		shipper 		=> 'Offline::UPS',
+		service 		=> 'GNDRES',
+		from_zip		=> '98682',
+		to_zip			=> '98270',
+		weight			=> 5.00,
+	);
+	
+	$rate_request->submit() or die $rate_request->error();
+	
+	print $rate_request->total_charges();
+
+=head1 ABSTRACT
+
+Business::Shipping is an API for shipping-related tasks.
+
+=head2 Shipping Tasks Implemented at this time
+
+ * Shipping cost calculation
+ * Tracking, availability, and other services are planned for future addition.
+
+=head2 Shipping Vendors Implemented at this time
+
+ * Online UPS (using the Internet and UPS servers)
+ * Offline UPS (using tables stored locally)
+ * Online USPS
+ * Offline FedEX and USPS are planned for support in the future.
+
+An object is returned if the operation is successful, or 'undef' otherwise.
+
+=head1 MULTI-PACKAGE API
+
+=head2 Online::UPS Example
+
+ use Business::Shipping;
+ use Business::Shipping::Shipment::UPS;
+ 
+ my $shipment = Business::Shipping::Shipment::UPS->new();
+ 
+ $shipment->init(
+	from_zip	=> '98682',
+	to_zip		=> '98270',
+	service		=> 'GNDRES',
+	#
+	# user_id, etc. needed here.
+	#
+ );
+
+ $shipment->add_package(
+	id		=> '0',
+	weight		=> 5,
+ );
+
+ $shipment->add_package(
+	id		=> '1',
+	weight		=> 3,
+ );
+ 
+ my $rate_request = Business::Shipping::rate_request( shipper => 'Online::UPS' );
+ #
+ # Add the shipment to the rate request.
+ #
+ $rate_request->shipment( $shipment );
+ $rate_request->submit() or ie $rate_request->error();
+
+ print $rate_request->package('0')->get_charges( 'GNDRES' );
+ print $rate_request->package('1')->get_charges( 'GNDRES' );
+ print $rate_request->get_total_price( 'GNDRES' );
+
+=head1 ERROR/DEBUG HANDLING
+
+The 'event_handlers' argument takes a hashref telling Business::Shipping what to do
+for error, debug, trace, and the like.  The value can be one of four options:
+
+ * 'STDERR'
+ * 'STDOUT'
+ * 'carp'
+ * 'croak'
+
+For example:
+
+ $rate_request->event_handlers(
+ 	{ 
+		'error' => 'STDERR',
+		'debug' => 'STDERR',
+		'trace' => undef,
+		'debug3' => undef,
+	}
+ );
+ 
+The default is 'STDERR' for error handling, and nothing for debug/trace 
+handling.  The option 'debug3' adds additional debugging messages that are not 
+included in the normal 'debug'.  Note that you can still access error messages
+even without an 'error' handler, by accessing the return values of methods.  For 
+example:
+
+ $rate_request->init( %values ) or print $rate_request->error();
+	
+However, if you don't save the error value before the next call, it could be
+overwritten by a new error.
+
+=head1 CLASS METHODS
+
+=head2 rate_request()
+
+This method is used to request shipping rate information from online providers
+or offline tables.  A hash is accepted as input with the following key values:
+
+=over 4
+
+=item * shipper
+
+The name of the shipper to use. Must correspond to a module by the name of:
+C<Business::Shipping::RateRequest::SHIPPER>.  For example, "Offline::UPS".
+
+=item * user_id
+
+A user_id, if required by the provider. Online::USPS and Online::UPS require
+this, while Offline::UPS does not.
+
+=item * password
+
+A password,  if required by the provider. Online::USPS and Online::UPS require
+this, while Offline::UPS does not.
+
+=item * service
+
+A valid service name for the provider. See the corresponding module 
+documentation for a list of services compatible with the shipper.
+
+=item * from_zip
+
+The origin zipcode.
+
+=item * from_state
+
+The origin state.  Required for Offline::UPS.
+
+=item * to_zip
+
+The destination zipcode.
+
+=item * to_country
+
+The destination country.  Required for international shipments only.
+
+=item * weight
+
+Weight of the shipment, in pounds, as a decimal number.
+
+=cut
+
+$VERSION = do { my @r=(q$Revision: 1.14 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r };
+
 use strict;
 use warnings;
-
-use vars qw( $VERSION );
-$VERSION = do { my @r=(q$Revision: 1.11 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r };
-
 use Carp;
 use Business::Shipping::Debug;
 use Business::Shipping::CustomMethodMaker
@@ -38,10 +214,9 @@ sub error
 
 sub event_handlers
 {
-	my $self = shift;
-	my $event_handlers = shift;
-	%Business::Shipping::Debug::event_handlers = %$event_handlers;
-	return;
+	my ( $self, $event_handlers ) = @_;
+	%Business::Shipping::Debug::event_handlers = %$event_handlers if defined $event_handlers;
+	return \%Business::Shipping::Debug::event_handlers;
 }
 
 sub validate
@@ -57,11 +232,9 @@ sub validate
 	
 	my @missing;
 	foreach my $required_field ( @required ) {
-		#debug( "Testing $required_field..." );
 		if ( ! $self->$required_field() ) {
 			push @missing, $required_field;
 		}
-		#debug( "...done." );
 	}
 	
 	if ( @missing ) {
@@ -123,207 +296,83 @@ sub new_subclass
 	my ( %opt ) = @_;
 	
 	if ( not defined &$new_class ) {
-		#debug "$new_class not defined, going to import it.\n";
+		#
+		# Clear previous errors
+		#
+		$@ = '';
+		
 		eval "require $new_class";
-		#Carp::croak( "unknown class (require) $new_class ($@)" ) if $@;
-		die( "unknown class (require) $new_class ($@)" ) if $@;
+		Carp::croak( "Error when trying to require $new_class: \n\t$@" ) if $@;
+		
 		eval "import $new_class";
-		#Carp::croak( "import error $new_class ($@)" ) if $@;
-		die( "import error $new_class ($@)" ) if $@;
-	}
-	else {
-		#debug "$new_class already defined\n";
-		die( "$new_class already defined\n" );
+		Carp::croak( "Error when trying to import $new_class: $@" ) if $@;
 	}
 	
 	my $new_sub_object = eval "$new_class->new()";
 	return $new_sub_object;	
 }
 
-1;
+sub _translate_simple
+{
+	my ( $self, $value_to_translate, $translation_config_param ) = @_;
+	carp "Missing values" unless $value_to_translate and $translation_config_param;
+	debug( "Going to translate $value_to_translate ( " . ( $self->$value_to_translate() || 'undef' ) . " ) using $translation_config_param" );
 
-__END__
-
-=head1 NAME
-
-Business::Shipping - API for shipping-related tasks
-
-=head1 REQUIRED MODULES
-
- Archive::Zip (any)
- Bundle::DBD::CSV (any)
- Cache::FileCache (any)
- Class::MethodMaker (any)
- Config::IniFiles (any)
- Crypt::SSLeay (any)
- Data::Dumper (any)
- Devel::Required (0.03)
- Error (any)
- LWP::UserAgent (any)
- XML::DOM (any)
- XML::Simple (2.05)
-
-=head1 SYNOPSIS
-
-Example usage for a rating request:
-
-	use Business::Shipping;
+	my $aryref = cfg()->{ ups_information }->{ $translation_config_param };
+	my $hash = $self->config_to_hash( $aryref, "\t" );
+	my $new_value = $self->_hash_translator( $self->$value_to_translate(), $hash );
+	debug( "Setting $value_to_translate to new value: " . ( $new_value || 'undef' ) );
+	$self->$value_to_translate( $new_value );
 	
-	my $rate_request = Business::Shipping->rate_request(
-		shipper 		=> 'Offline::UPS',
-		service 		=> 'GNDRES',
-		from_zip		=> '98682',
-		to_zip			=> '98270',
-		weight			=> 5.00,
-	);
+	return;
+}
+
+sub simple_translate_config
+{
+	my ( $self, $config_aryref ) = @_;
 	
-	$rate_request->submit() or die $rate_request->error();
+	for ( @$config_aryref ) {
+		my ( $value_to_translate, $translation_config_param ) = split( "\t", $_ );
+		next unless $value_to_translate and $translation_config_param;
+		$self->_translate_simple( $value_to_translate, $translation_config_param );
+	}
 	
-	print $rate_request->total_charges();
+	return;
+}
 
-=head1 ABSTRACT
+=item * config_to_hash( $ary, $del )
 
-Business::Shipping is an API for shipping-related tasks.
+	$ary	Key/value pairs
+	$del	Delimiter for the above array (tab is default)
 
-=head2 Shipping Tasks Implemented at this time:
+Builds a hash from an array of lines containing key / value pairs, like so:
 
- * Shipping cost calculation
- * Tracking, availability, and other services are planned for future addition.
+key1	value1
+key2	value2
+key3	value3
 
-=head2 Shipping Vendors Implemented at this time:
-
- * Online UPS (using the Internet and UPS servers)
- * Offline UPS (using tables stored locally)
- * Online USPS
- * Offline FedEX and USPS are planned for support in the future.
-
-=head1 CLASS METHODS
-
-=head2 rate_request()
-
-This method is used to request shipping rate information from online providers
-or offline tables.  A hash is accepted as input with the following key values:
-
-=over 4
-
-=item * shipper
-
-The name of the shipper to use. Must correspond to a module by the name of:
-C<Business::Shipping::RateRequest::SHIPPER>.  For example, "Offline::UPS".
-
-=item * user_id
-
-A user_id, if required by the provider. Online::USPS and Online::UPS require
-this, while Offline::UPS does not.
-
-=item * password
-
-A password,  if required by the provider. Online::USPS and Online::UPS require
-this, while Offline::UPS does not.
-
-=item * service
-
-A valid service name for the provider. See the corresponding module 
-documentation for a list of services compatible with the shipper.
-
-=item * from_zip
-
-The origin zipcode.
-
-=item * from_state
-
-The origin state.  Required for Offline::UPS.
-
-=item * to_zip
-
-The destination zipcode.
-
-=item * to_country
-
-The destination country.  Required for international shipments only.
-
-=item * weight
-
-Weight of the shipment, in pounds, as a decimal number.
-
-=item * test_mode
-
-If true, connects to a test server instead of a live server, if possible. 
-Defaults to 0.
+=cut
+sub config_to_hash
+{
+	my ( $self, $ary, $delimiter ) = @_;
+	return unless $ary;
+	#
+	# TODO: check ref( $ary ) eq 'ARRAY'
+	#
+	
+	$delimiter ||= "\t";
+	
+	my $hash = {};
+	foreach my $line ( @$ary ) {
+		my ( $key, $val ) = split( $delimiter, $line );
+		$hash->{ $key } = $val;
+	}
+	
+	return $hash;	
+}
 
 =back
 
-An object is returned if the operation is successful, or 'undef' otherwise.
-
-=head1 MULTI-PACKAGE API
-
-=head2 Online::UPS Example
-
- use Business::Shipping;
- use Business::Shipping::Shipment::UPS;
- 
- my $shipment = Business::Shipping::Shipment::UPS->new();
- 
- $shipment->init(
-	from_zip	=> '98682',
-	to_zip		=> '98270',
-	service		=> 'GNDRES',
-	#
-	# user_id, etc. needed here.
-	#
- );
-
- $shipment->add_package(
-	id		=> '0',
-	weight		=> 5,
- );
-
- $shipment->add_package(
-	id		=> '1',
-	weight		=> 3,
- );
- 
- my $rate_request = Business::Shipping::rate_request( shipper => 'Online::UPS' );
- #
- # Add the shipment to the rate request.
- #
- $rate_request->shipment( $shipment );
- $rate_request->submit() or print $rate_request->error();
-
- print $rate_request->package('0')->get_charges( 'GNDRES' );
- print $rate_request->package('1')->get_charges( 'GNDRES' );
- print $rate_request->get_total_price( 'GNDRES' );
-
-=head1 ERROR/DEBUG HANDLING
-
-The 'event_handlers' argument takes a hashref telling Business::Shipping what to do
-for error, debug, trace, and the like.  The value can be one of four options:
-
- * 'STDERR'
- * 'STDOUT'
- * 'carp'
- * 'croak'
-
-For example:
-
- $rate_request->init( 
-	'event_handlers' => ({ 
-		'error' => 'STDOUT',
-		'debug' => undef,
-		'trace' => undef,
-		'debug3' => undef,
-	})
- );
- 
-The default is 'STDERR' for error handling, and nothing for debug/trace 
-handling.  The option 'debug3' adds additional debugging messages that are not 
-included in the normal 'debug'.  Note that you can still access error messages
-even without an 'error' handler, by accessing the return values of methods.  For 
-example:
-
- $rate_request->init( %values ) or print $rate_request->error();
-	
-However, if you don't save the error value before the next call, it could be
-overwritten by a new error.
-
 =cut
+
+1;

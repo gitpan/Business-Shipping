@@ -1,12 +1,27 @@
 ######################################################
 ##  General TODO
 ######################################################
+
+ * [ENH] Allow error format to specified: With/without caller, line numbers.
+
+ * [ENH] Add scripts/ directory somewhere.
+
+ * [ENH] Use fields.pm to guard against autovivification. 
  
+ * [ENH] Improve documentation (adding sections to all .pm files)
+
+ * [ENH] Update to more recent C:MM syntax, like '-default', etc.
+ 
+ * [ENH] Allow users to set path to support files.
+
  * [ENH] Need to check for support_files() config param, and exit if files
    are missing.
- 
+
  * [ENH] Allow the user to set the timeout for http requests.  Sometimes 30
    seconds is too long.
+
+ * [DOC] Add minimal documentation to each module, with most of the 
+   documentation in the main module.
 
  * [DOC] Include the terms of use for each provider.
  
@@ -18,15 +33,7 @@
  * [BUG] Only Cache the response if it was a success (very important).
  
  * [BUG] Error on missing arguments isn't working very well ( user_id, password)
- 
- * [ENH] Country name translator strings to data outside your program.
- 	# TODO: Move all of this, and any other data that is currently mixed with 
-	# code.
-	# A simple, file-based configuration system would be nice, like Interchange.
-	# Perhaps Config::Ini Configuration files?  Other?  Shipping::Config module
-	# will provide parser, importer.  Any internal modules that use 
-	# configuration will go through that module.  (it's an idea, anyway) 
- 
+
  * [ENH] Enhance the debugging/error handling features: allow user to pass in a 
    callback ref conforming to some (customizable?) calling standard. 
 
@@ -46,9 +53,9 @@
  
  * [ENH] Create Bundle::BusinessShipping
  
- * [ENH] The Shipping module itself should be able to be queried for what shippers it
-   handles. Each shipper should be able to be queried for what services it 
-   provides... maybe code would look like this:
+ * [ENH] The Shipping module itself should be able to be queried for what 
+   shippers it handles. Each shipper should be able to be queried for what 
+   services it provides... maybe code would look like this:
 
 	use Business::Shipping; 
 	
@@ -86,7 +93,25 @@
  * [ENH] After Table-based lookups are added, enable them as a fall-back to 
    online lookups.  That way, if the UPS/USPS servers are down, it will
    automatically utilize the table-lookup method.
-
+   
+ * [ENH] Many of the functions that are currently in 
+   Shipping::RateRequest::Offline::UPS should probably be moved to a 
+   corresponding Shipment module (like calc_cost), becuase they work on a given
+   "current" shipment, not the entire rate request as a whole.  They happen to 
+   work because the RateRequest object aliases those functions (using 
+   'comp_mthds') to the 'shipment' object, slotted in the RateRequest object.
+ 
+ * [ENH] Find or create some module that will automatically update the "=head1 
+   VERSION" POD based on the $VERSION in the same file.
+   
+ * [DOC] Need to create a list of common errors that will be encountered.
+ 
+ * [ENH] Is there a way to overload the '=' operator to make some code prettier?
+   We could do "$self->weight = 5" instead of "$self->set_weight( 5 )".
+ 
+ * [ENH] Setup a proper "announce", "cvs", and "users" mailing list where users
+   can sign up for updates and get information.   
+   
 ######################################################
 ##  USPS ONLINE TODO
 ######################################################
@@ -108,6 +133,69 @@
 ##  UPS OFFLINE TODO
 ######################################################
 
+ * [DOC] Refer to Express for Express Plus.  To determine whether Express Plus
+   service is available to your destination postal code, call 800-782-7892.
+
+ * Analyze the 'extra services fees' table:
+   - Extended/Domestic Area Surcharge:  Residential = 1.75, Commercial= 1.00
+   - Residential Surcharge = 1.40 (always assume yes, unless explicitly stated
+     no).
+ 
+ * [ENH] Allow user to specify "use default" for Makefile.PL (already done?)
+ 
+ * [ENH] Provide example documentation for easily keeping up to date with the
+   CVS.  For example:
+     
+     cvs up
+	 perl Makefile.PL
+	 make
+	 make test
+	 make install
+	 
+	 -or-
+	 
+	 cd $PATH_TO_SHIP
+	 su $USER -c 'perl Makefile.PL'
+	 su $USER -c 'make'
+	 su $USER -c 'make test'
+	 make install
+	 
+ * [ENH] For Canada, only the first shipping method works.
+
+ * [ENH] Change from_state to a Shipment function, which will calculate and set 
+   the is_from_west_coast() value, instead of doing from within 
+   massage_values().
+
+ * [BUG] France Metropolitan:
+		[business-shipping]: Offline::UPS error: No zone found for geo code (key) France,
+		Metropolitan, type ExpeditedSM_EC. .
+		Options were: {'cache' => "1",'from_state' => "Washington",'from_zip' => "98682",'weight' =>
+		"1.5",'to_zip' => "69100",'from_country' => "US",'shipper' => "Offline::UPS",'to_country' =>
+		"FX",'service' => "XPD",}
+
+ * [BUG] Canada via XPR/XPD doesn't work (and wont, until canada is implemented)
+		[business-shipping]: Offline::UPS error: No zone found for geo code (key) Canada, type
+		ExpeditedSM_EC. .
+		Options were: {'cache' => "1",'from_state' => "Washington",'from_zip' => "98682",'weight' =>
+		"1",'to_zip' => "h9h2v3",'from_country' => "US",'shipper' => "Offline::UPS",'to_country' =>
+		"CA",'service' => "XPD",}
+				
+ * [ENH] Have a simple example script in the doc directory.
+
+ * [ENH] How to find the current fuel surcharge rate:
+   - http://www.ups.com/content/us/en/resources/find/cost/fuel_surcharge.html	
+   - m/Effective.+: ?(\d\.\d\d\)%/
+   
+ * [ENH] Extended Area Surcharge: 
+   - http://www.ups.com/media/en/extended_area_us.pdf
+   
+ * [ENH] Modify the system so that the easy-to-read data is read into memory
+         just once, and then is optimized for lookup speed, so the sequential
+		 lookups will be as fast as possible.  (Increases memory footprint, but
+		 it should be worth it).
+ 
+ * [ENH] Canada needs to check for EAS surcharge (see canww.csv->'EAS' column)
+ 
  * [ENH] Add support for Canada (UPS Standard, XPD, XPR, XDM)
          - Requires new parsing method (Canada ZIP style, etc.)
 
@@ -133,13 +221,6 @@
    (i.e. 970.csv has "970-01 to 972-99" -- means it actually does 972.csv too).
  
  * [ENH] Utilize GDBM or SQL, if available, to speed up lookups.
-
- * [ENH] How to find the current fuel surcharge rate:
-   - http://www.ups.com/content/us/en/resources/find/cost/fuel_surcharge.html	
-   - m/Effective.+: ?(\d\.\d\d\)%/
-   
- * [ENH] Extended Area Surcharge: 
-   - http://www.ups.com/media/en/extended_area_us.pdf
 
 ######################################################
 ##  UPS ONLINE TODO
@@ -169,5 +250,9 @@
 ##  Interchange UserTag TODO
 ######################################################
 
+ * [BUG] The $shipper variable acts as if it can only be "UPS" or "USPS", but
+   now it can actually be "Offline::UPS" or anything else.  Works for now, but
+   should be fixed.
+
  * [ENH] Test for ability to use within Safe?
-	([perl]$Tag->ups_query('', '', '');[/perl]) 
+         [perl]$Tag->business_shipping();[/perl] 

@@ -1,9 +1,9 @@
 # Business::Shipping::RateRequest::Offline::UPS
 #
-# $Id: UPS.pm,v 1.4 2004/01/07 01:17:42 db-ship Exp $
+# $Id: UPS.pm,v 1.13 2004/01/30 18:46:55 db-ship Exp $
 #
 # Copyright (c) 2003 Interchange Development Group
-# Copyright (c) 2003 Kavod Technologies, Dan Browning. 
+# Copyright (c) 2003,2004 Kavod Technologies, Dan Browning. 
 #
 # All rights reserved. 
 # 
@@ -14,33 +14,25 @@
 # for more info.
 #
 
-=head1 METHODS
-
-=over 4
-
-=cut
-
 package Business::Shipping::RateRequest::Offline::UPS;
+
+$VERSION = do { my @r=(q$Revision: 1.13 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r };
 
 use strict;
 use warnings;
-
-use vars qw( $VERSION );
-$VERSION = do { my @r=(q$Revision: 1.4 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r };
 use base ( 'Business::Shipping::RateRequest::Offline' );
-
 use Business::Shipping::Shipment::UPS;
 use Business::Shipping::Package::UPS;
 use Business::Shipping::Debug;
 use Business::Shipping::Data;
-use Business::Shipping::Util;
+use Business::Shipping::Util( 'element_in_array' );
 use Business::Shipping::Config;
 use Data::Dumper;
 use POSIX;
 use Fcntl ':flock';
 use File::Find;
 use File::Copy;
-
+use Math::BaseCnv;
 use Business::Shipping::CustomMethodMaker
 	new_with_init => 'new',
 	new_hash_init => 'hash_init',
@@ -54,28 +46,56 @@ use Business::Shipping::CustomMethodMaker
 	hash => [ 'zone' ],
 	grouped_fields_inherit => [
 		optional => [ 
-			'zone_file', 
+			'zone_file',
 			'zone_name',
 		],
 		required => [
 			'from_state',
-		],
-	];
+		],		
+	],
+	#
+	# Class Attributes
+	#
+	hash => [ '-static', 'Zones' ],
+	;
 
-use constant INSTANCE_DEFAULTS => (
-);
-
+use constant INSTANCE_DEFAULTS => ();
 sub init
 {
 	my $self   = shift;
-	
 	my %values = ( INSTANCE_DEFAULTS, @_ );
 	$self->hash_init( %values );
 	return;
 }
 
+
+=head1 NAME
+
+Offline::UPS - Calculates UPS rates from tables.
+
+=head1 SPECIAL INFO
+
+Countries that do not have Express Plus:
+
+CA  Canada (it is possible to calculate the rate, but you have to call UPS to 
+           find out if it is available).
+NO  Norway
+
+=head1 METHODS
+
+=over 4
+
+=item * zone_name()
+
+  - For International, it's the name of the country (e.g. 'Canada')
+  - For Domestic, it is the first three of a zip (e.g. '986')
+  - For Canada, it is...?
+  
+=cut
+
+
 sub to_residential { return shift->shipment->to_residential( @_ ); }
-sub is_from_east_coast { return not $_[ 0 ]->is_from_west_coast(); }
+sub is_from_east_coast { return not shift->is_from_west_coast(); }
 
 sub convert_ups_rate_file
 {
@@ -381,6 +401,13 @@ sub rename_tables_that_have_a_dash
 	return $new_file;
 }
 
+sub auto_update
+{
+	my ( $self ) = @_;
+	$self->update( 1 );
+	$self->do_update();
+}
+
 sub do_update
 {
 	my ( $self ) = @_;
@@ -398,21 +425,36 @@ sub do_update
 	return;
 }	
 
+sub validate
+{
+	my ( $self ) = @_;
+	trace '()';
+	
+	if ( $self->to_canada ) {
+		if ( $self->service eq 'XDM' ) {
+			$self->error( 
+				  "Offline::UPS cannot estimate Express Plus to Canada, because "
+				. "not all zip codes are supported."
+			);
+			
+			return;
+		}
+	}
+	
+	return 1;
+}
+
 sub _handle_response
 {
 	my $self = $_[ 0 ];
 	
+	my $total_charges;
 	$self->do_update();
-	
-	#
-	# Zones hash refrence not stored in object due to extreme size.
-	#
-	my $zones_ref = $self->calc_zone_data();
-	
-	my $total_charges = $self->calc_cost( $zones_ref->{ $self->zone_name() } );
-	$total_charges += $self->calc_express_plus_adder();
+	$self->calc_zone_data();
+	$total_charges  = $self->calc_cost();
+	$total_charges += $self->calc_express_plus_adder( $total_charges );
 	$total_charges += $self->calc_fuel_surcharge( $total_charges );
-	$total_charges += $self->calc_residential_surcharge();
+	$total_charges += $self->calc_residential_surcharge( $total_charges );
 	
 	$total_charges = Business::Shipping::Util::currency( { no_format => 1 }, $total_charges );
 	#
@@ -440,15 +482,16 @@ sub _handle_response
 
 sub calc_express_plus_adder
 {
-	trace '()';
-	my ( $self ) = @_;
-	my $adder;
+
+	my ( $self, $total_charges ) = @_;
+	trace "( $total_charges )";
+	return 0 unless $total_charges;
 	
 	if ( $self->service_code_to_ups_name( $self->service() ) =~ /plus/i ) {
- 		$adder = cfg()->{ ups_information }->{ express_plus_adder } || 40.00;
+ 		return cfg()->{ ups_information }->{ express_plus_adder } || 40.00;
 	}
 	
-	return $adder || 0.00;
+	return 0.00;
 }
 
 #
@@ -458,10 +501,13 @@ sub calc_express_plus_adder
 #
 sub calc_residential_surcharge
 {
-	my $self = shift;
+	my ( $self, $total_charges ) = @_;
 	
-	if ( $self->to_residential() ) {
-		return 1.17
+	#
+	# We must have some amount to add it to, before we add it.
+	#
+	if ( $self->to_residential and $total_charges ) {
+		return 1.17;
 	}
 	else {
 		return 0;
@@ -472,7 +518,7 @@ sub calc_fuel_surcharge
 {
 	my ( $self, $total_charges ) = @_;
 	
-	my $fuel_surcharge = cfg()->{ ups_information }->{ fuel_surcharge };
+	my $fuel_surcharge = cfg()->{ ups_information }->{ fuel_surcharge } || do { $self->error( "fuel surcharge rate not found" ); return; };
 	$fuel_surcharge =~ s/\%//;
 	$fuel_surcharge *= .01;
 	$fuel_surcharge *= $total_charges;
@@ -514,38 +560,213 @@ sub ups_name_to_table
 	}
 }
 
+=item * calc_zone_data()
+
+* Modifies the class attribute Zones(), and adds data for the zone like so...
+
+	$self->Zones() = (
+		'Canada' => {
+			'zone_data' => [
+				'first line of zone file',
+				'second line',
+				'etc.',
+			]
+		}
+	)
+	
+=cut
+sub calc_zone_data
+{
+	trace( 'called' );
+	my ( $self ) = @_;
+	
+	my $zone_name = $self->zone_name;
+	if ( ! $zone_name ) {
+		$self->error( "No $zone_name, exiting..." );
+		return;
+	}
+	
+	#
+	# Don't recalculate it if it already exists, unless overridden by configuration.
+	#
+	if 	(	
+				$self->Zones( $zone_name ) 
+			and ! cfg()->{ ups_information }->{ always_calc_zone_data }
+		)
+	{
+		debug( "Zone $zone_name already defined, skipping." );
+		return;
+	}
+	
+	#
+	# Initialize this zone
+	#
+	$self->Zones( $zone_name => {} );
+	
+	#
+	# World-wide:  instead of 130-139,123,345, we have:
+	#                         Albania,123,345
+	#
+	debug( 'looking for zone_name: ' . $zone_name . ", with zone_file: " . $self->zone_file );
+	
+	for ( keys %{ $self->Zones() } ) {
+		my $this_zone = $self->Zones( $_ );
+		if ( ! $this_zone->{ zone_data } ) {
+			$this_zone->{ zone_data } = Business::Shipping::Util::readfile( $self->zone_file() );
+		}
+		if ( ! $this_zone->{ zone_data } ) {
+			$self->error( "Bad shipping file for zone " . $_ . ", lookup disabled." );
+			next;
+		}
+		my ( @zone ) = grep /\S/, split /[\r\n]+/, $this_zone->{ zone_data };
+		shift @zone while @zone and $zone[0] !~ /^(Postal|Dest\. ZIP|Country)/;
+		if ( $zone[ 0 ] and $zone[ 0 ] =~ /^Postal/ ) {
+			debug3( 'this zone (' . $zone[ 0 ] . ') =~ ^Postal' );
+			$zone[ 0 ] =~ s/,,/,/;
+			for ( @zone[ 1 .. $#zone ] ) {
+				s/,/-/;
+			}
+		}
+		
+		if ( $zone[ 0 ] and $zone[ 0 ] !~ /\t/ ) {
+			@zone = grep /\S/, @zone;
+			@zone = grep /^[^"]/, @zone;
+			$zone[0] =~ s/[^\w,]//g;
+			$zone[0] =~ s/^\w+/low,high/;
+			@zone = grep /,/, @zone;
+			$zone[0] =~	s/\s*,\s*/\t/g;
+			
+			#
+			# Split into a tab-separated format.
+			#
+			for(@zone[1 .. $#zone]) {
+				#my $before = $_;
+				s/^\s*(\w+)\s*-\s*(\w+),/$1 . ',' . $2 . ','/e;
+				s/\s*,\s*/\t/g;
+				#my $after = $_;
+			}
+		}
+		$this_zone->{ zone_data } = \@zone;
+		
+		#
+		# TODO: Do I need to copy the $this_zone back into the Zones() hash?
+		# Or does copying the reference, then modifying the reference do the
+		# same thing?
+		#
+		# $self->Zones( $zone_name => $this_zone )
+		#
+	}
+	
+	return;
+}
+
+=item * determine_keys()
+
+Decides what unique keys will be used to locate the zone record.  
+
+ * The first key ("key") is a shortened version (the zip code "98682" becomes
+   "986") to locate the zone file and the range that it fits into.
+   
+ * The second key ("raw_key") is the actual key, for looking up the record
+   in the correct zone file once it has been found.
+
+Returns ( $key, $raw_key )
+
+=cut
+sub determine_keys
+{
+	my ( $self ) = @_;
+	
+	my $key;
+	my $raw_key;
+	if ( $self->domestic_or_ca ) {
+		#
+		# Domestic and Canada - by ZIP code
+		#
+		$raw_key = $self->to_zip;
+		$key = $self->to_zip;
+		$key = substr($key, 0, 3);
+		$key =~ s/\W+//g;
+		$key = uc $key;
+	}
+	elsif ( $self->intl ) {
+		#
+		# International - by country name 
+		#
+		$key = $self->to_country;
+		$raw_key = $key;
+	}
+	
+	return ( $key, $raw_key );
+}
+
+=item * rate_table_exceptions
+
+WorldWide methods use different tables for Canada
+
+=cut
+sub rate_table_exceptions
+{
+	my ( $self, $type, $table ) = @_;
+	
+	return $table unless $self->to_country;
+	my $exceptions_cfg = cfg()->{ ups_names_in_zone_file_to_table_map_exceptions }->{ $self->to_country };
+	return $table unless $exceptions_cfg;
+	
+	my $exceptions_hash = $self->config_to_hash( $exceptions_cfg ); 
+	debug3( "type = $type, table = $table, looking for type in exceptions hash..." );
+	
+	if ( $exceptions_hash->{ $type } ) {
+		$table = $exceptions_hash->{ $type };
+		debug( "table exception found: $table" );
+	}
+	else {
+		debug3( "No table exception found.  Returning regular table $table" );
+	}
+	
+	return $table;
+}
+
+=item * calc_cost( )
+
+* Modifies the class attribute $Zones, and adds data for the zone like so...
+
+	$Zones => {
+		'Canada' => {
+			'zone_data' => [
+				'first line of zone file',
+				'second line',
+				'etc.',
+			]
+		}
+	}
+	
+=cut
 sub calc_cost
 {
-	my ( $self, $zref ) = @_;
+	my ( $self ) = @_;
 	
+	my $zone_name 	= $self->zone_name;
+	my $zref 		= $self->Zones( $zone_name );
+	my $type 		= $self->service_code_to_ups_name(	$self->service()	);
+	my $table 		= $self->ups_name_to_table(			$type 				);
+	$table 			= $self->rate_table_exceptions( $type, $table );
+	
+	
+	my ( $key, $raw_key ) = $self->determine_keys; 
 	my @data;
 	my @fieldnames;
 	my $i;
 	my $point;
 	my $zone;
-	my $type 	= $self->service_code_to_ups_name(	$self->service()	);
-	my $table 	= $self->ups_name_to_table(			$type 				);
-	my $key;
+	
 	my $rawzip;
-	if ( $self->intl() ) {
-		$key = $self->to_country();
-	}
-	else {
-		#
-		# ZIP code
-		#
-		$key = $self->to_zip();
-		$rawzip = $self->to_zip();
-		
-		$key = substr($key, 0, ($zref->{str_length} || 3));
-		$key =~ s/\W+//g;
-		$key = uc $key;
-	}
+	
+	
 	my $weight = $self->weight;
 	my $code = 'u';
 	my $opt = {};
 	$opt->{residential} ||= $self->shipment()->to_residential();
-	my $Values = {};
 	
 	#
 	# TODO: validation checks...
@@ -554,51 +775,68 @@ sub calc_cost
 	# Check that the zone (e.g. 450) was defined.
 	# Check that we have the zone data calculated.
 	#
-	debug( "table = $table" );
+	debug( "rate table = $table, zone_name = $zone_name" );
 	if ( ! defined $zref->{zone_data} ) {
-		$self->error( "lookup for this zone failed becuase zone data could not be found" );
+		$self->error( "zone data could not be found" );
 		return 0;
 	}
 	
 	my $zdata = $zref->{zone_data};
-	# UPS doesn't like fractional pounds, rounds up
-
-	# here we can adapt for pounds/kg
+	
+	#
+	# Here we can adapt for pounds/kg
+	#
 	if ($zref->{mult_factor}) {
 		$weight = $weight * $zref->{mult_factor};
 	}
+	
+	#
+	# Tables don't cover fractional pounds, so round up.
+	#
 	$weight = POSIX::ceil($weight);
 
-	@fieldnames = split /\t/, $zdata->[0];
-	
-	
 	#
 	# Handle eastcoast / westcoast fieldnames
+	# Except for Canada.
 	#
-	if ( $type eq 'ExpressSM' ) {
-		$type = $self->is_from_west_coast() ? 'ExpressSM_WC' : 'ExpressSM_EC';
+	if ( $self->to_canada ) {
+		#
+		# Remove the 'SM' from the end, Canada doesn't have that silliness.
+		#
+		$type =~ s/SM$//;
 	}
-	elsif ( $type eq 'ExpeditedSM' ) {
-		$type = $self->is_from_west_coast() ? 'ExpeditedSM_WC' : 'ExpeditedSM_EC';
+	else {
+		#
+		# The only other Express/Expedited methods are intl.
+		#
+		if ( $type eq 'ExpressSM' ) {
+			$type = $self->is_from_west_coast() ? 'ExpressSM_WC' : 'ExpressSM_EC';
+		}
+		elsif ( $type eq 'ExpeditedSM' ) {
+			$type = $self->is_from_west_coast() ? 'ExpeditedSM_WC' : 'ExpeditedSM_EC';
+		}
 	}
 	
-	debug( "fieldnames = " . join( ' ', @fieldnames ) );
-	debug( "looking for field name $type" );
+	@fieldnames = split( /\t/, $zdata->[ 0 ] ) if $zdata->[ 0 ];
+	debug( "Looking for $type in fieldnames: " . ( join( ' ', @fieldnames ) || 'undef' ) );
 	
-	for($i = 2; $i < @fieldnames; $i++) {
-		debug( 'fieldname = ' .  $fieldnames[ $i ] );
+	for($i = 1; $i < @fieldnames; $i++) {
+		debug3( "checking $fieldnames[$i] eq $type" );
 		next unless $fieldnames[ $i ] eq $type;
 		$point = $i;
-		
 		last;
 	}
-	
 	if ( ! defined $point) {
-		my $error = "Zone '$code' lookup failed, type '$type' not found";
-		$self->error( $error );
+		$self->error( "Zone '$code' lookup failed, type '$type' not found" );
 		return 0;
 	}
+	else {
+		debug( "point (i.e. field index) found!  It is $point.  Fieldname referenced by point is $fieldnames[$point]" );
+	}
 
+	#
+	# TODO: EAS
+	# 
 	my $eas_point;
 	my $eas_zone;
 	if($zref->{eas}) {
@@ -608,86 +846,54 @@ sub calc_cost
 			last;
 		}
 	}
-	debug( "point = $point" );
-	debug( "looking in zone data." );
 	
+	debug( "point = $point, looking in zone data..." );
 	for ( @{ $zdata }[ 1.. $#{ $zdata } ] ) {
-		#@data = split /\t/, $_;
 		@data = split /\t/, $_;
-		#debug "0 = $data[0]" if $data[0];
-		#debug "1 = $data[1]" if $data[1];
-		#debug "2 = $data[2]" if $data[2];
-		#
-		if ( $self->intl() ) {
-			next unless ( $data[0] and $key eq $data[0] );
-			$zone = $data[ ( $point - 1 ) ];
-		}
-		else {
-			next unless $key and $data[0] and $data[1];
-			next unless ($key ge $data[0] and $key le $data[1]);
+		if ( $self->current_shipment->domestic_or_ca ) {
+
+			my $low		= $data[0];
+			my $high	= $data[1];
+			my $goal	= $key;
+			
+			if ( $self->current_shipment->to_canada ) {
+				#
+				# Canada uses a base-36 (0-10 + A-Z) zip number system.
+				# Use a base converter to convert the numbers to base-10
+				# just for the sake of comparison.
+				#
+				$low	= cnv( $low, 36, 10 );
+				$high	= cnv( $high, 36, 10 );
+				$goal	= cnv( $goal, 36, 10 );
+			}
+			
+			next unless $goal and $low and $high;
+			next unless $goal ge $low and $goal le $high;
+			debug( "setting zone to $data[$point]" );
 			$zone = $data[ $point ];
 		}
-		
+		else {
+			next unless ( $data[0] and $key eq $data[0] );
+			$zone = $data[ ( $point - 1) ];
+		}
 		
 		$eas_zone = $data[$eas_point] if defined $eas_point;
-		return 0 unless $zone;
 		last;
 	}
-	#
-	# For for special Hawaii/Alaska zip codes.
-	#
 	
-	my @hi_special_zipcodes_124_224 = split( ',', cfg()->{ups_information}->{hi_special_zipcodes_124_224} );
-	my @hi_special_zipcodes_126_226 = split( ',', cfg()->{ups_information}->{hi_special_zipcodes_126_226} );
-	my @ak_special_zipcodes_124_224 = split( ',', cfg()->{ups_information}->{ak_special_zipcodes_124_224} );
-	my @ak_special_zipcodes_126_226 = split( ',', cfg()->{ups_information}->{ak_special_zipcodes_126_226} );
-	debug ( "hawaii special zip codes = " . join( ",\t", @hi_special_zipcodes_124_224 ) );
-	debug( "my zip is = " . $self->to_zip );
-
-	if ( 
-			Business::Shipping::Util::element_e_in_array_a( $self->to_zip(), @hi_special_zipcodes_124_224 )
-		or
-			Business::Shipping::Util::element_e_in_array_a( $self->to_zip(), @ak_special_zipcodes_124_224 )
-			
-		) 
-	{
-		
-		if ( $type eq 'NextDayAir' ) {
-			$zone = '124';
-		}
-		elsif ( $type eq '2ndDayAir' ) {
-			$zone = '224';
-		}
-	}
-	if ( 
-			Business::Shipping::Util::element_e_in_array_a( $self->to_zip(), @hi_special_zipcodes_126_226 )
-		or
-			Business::Shipping::Util::element_e_in_array_a( $self->to_zip(), @ak_special_zipcodes_126_226 )
-			
-		) 
-	{
-		if ( $type eq 'NextDayAir' ) {
-			$zone = '126';
-		}
-		elsif ( $type eq '2ndDayAir' ) {
-			$zone = '226';
-		}
-	}		
+	$zone = $self->special_zone_hi_ak( $type, $zone );
 	
 	if (! defined $zone) {
 		$self->error( "No zone found for geo code (key) $key, type $type. " );
 		return 0;
 	}
-	elsif (!$zone or $zone eq '-') {
-		$Vend::Session->{ship_message} .=
-			"No $type shipping allowed for geo code (key) $key.";
-		debug( "empty zone $zone." );
+	elsif ( ! $zone or $zone eq '-') {
+		$self->error( "No $type shipping allowed for $key." );
 		return 0;
 	}
 
 	my $cost;
-	debug( "zone is $zone" );
-	debug( "going to call record( $table, $zone, $weight ) " );
+	debug( "zone=$zone, going to call record( $table, $zone, $weight ) " );
 	$cost =  record( $table, $zone, $weight );
 	$cost += record( $table, $zone, $eas_zone )  if defined $eas_point;
 	
@@ -697,168 +903,122 @@ sub calc_cost
 	}
 		
 	debug( "cost = $cost" );
-	if($cost > 0) {
-		if($opt->{surcharge_table}) {
-			$opt->{surcharge_field} ||= 'surcharge';
-			my $xarea = record(
-							$opt->{surcharge_table},
-							$opt->{surcharge_field},
-							$rawzip);
-			$cost += $xarea if $xarea;
-		}
-		if($opt->{residential}) {
-			#
-			# Not implemented in the data yet.
-			#			
-			my $field = $opt->{residential_field} || 'res';
-			my $res_charge = record( $table, $field, $weight );
-			debug3( "residential check field=$field, type=" . ( $type ? $type : '' ) 
-					. " weight = " . ( $weight ? $weight : '' )
-					. ", res_charge: " . ( $res_charge ? $res_charge : '' ) );
-			$cost += $res_charge if $res_charge;
-		}
-	}
+	#
+	# TODO: Surcharge table + Surcharge_field?
+	# TODO: Residential field (same table)?
+	#
+		
 	return $cost || 0;
 }
 
-=item * calc_zone_data()
+=item * special_zone_hi_ak( $type )
 
-Worldwide zone file: ewwzone.csv
+ $type	Type of service.
+ 
+Hawaii and Alaska have special per-zipcode zone exceptions for 1da/2da.
 
 =cut
-sub calc_zone_data
+sub special_zone_hi_ak
 {
-	trace( 'called' );
-	my $self = $_[ 0 ];
-	my %zones = ( 
-		$self->zone_name() => {},
-	);
+	my ( $self, $type, $zone ) = @_;
+	trace( "( $type, $zone )" );
 	
-	#
-	# World-wide:  instead of 130-139,123,345, we have:
-	#                         Albania,123,345
-	#
-	debug( 'looking for zone_name: ' . $self->zone_name );
+	return $zone unless $type and ( $type eq 'NextDayAir' or $type eq '2ndDayAir' ); 
 	
-	for (keys %zones) {
-		my $ref = $zones{$_};
-		if (! $ref->{zone_data}) {
-			$ref->{zone_data} = Business::Shipping::Util::readfile( $self->zone_file() );
+	my @hi_special_zipcodes_124_224 = split( ',', ( cfg()->{ups_information}->{hi_special_zipcodes_124_224} or '' ) );
+	my @hi_special_zipcodes_126_226 = split( ',', ( cfg()->{ups_information}->{hi_special_zipcodes_126_226} or '' ) );
+	my @ak_special_zipcodes_124_224 = split( ',', ( cfg()->{ups_information}->{ak_special_zipcodes_124_224} or '' ) );
+	my @ak_special_zipcodes_126_226 = split( ',', ( cfg()->{ups_information}->{ak_special_zipcodes_126_226} or '' ) );
+	debug3( "zip=" . $self->to_zip . ".  Hawaii special zip codes = " . join( ",\t", @hi_special_zipcodes_124_224 ) );
+
+	if ( 
+			element_in_array( $self->to_zip(), @hi_special_zipcodes_124_224 )
+		or
+			element_in_array( $self->to_zip(), @ak_special_zipcodes_124_224 )
+		) 
+	{
+		if ( $type eq 'NextDayAir' ) {
+			$zone = '124';
 		}
-		if ( ! $ref->{zone_data} ) {
-			$self->error( "Bad shipping file for zone " . $_ . ", lookup disabled." );
-			next;
+		elsif ( $type eq '2ndDayAir' ) {
+			$zone = '224';
 		}
-		my ( @zone ) = grep /\S/, split /[\r\n]+/, $ref->{zone_data};
-		shift @zone while @zone and $zone[0] !~ /^(Postal|Dest\. ZIP|Country)/;
-		if ( $zone[ 0 ] =~ /^Postal/ ) {
-			debug( 'this zone (' . $zone[ 0 ] . ') =~ ^Postal' );
-			$zone[ 0 ] =~ s/,,/,/;
-			for ( @zone[ 1 .. $#zone ] ) {
-				s/,/-/;
-			}
+	}
+	if ( 
+			element_in_array( $self->to_zip(), @hi_special_zipcodes_126_226 )
+		or
+			element_in_array( $self->to_zip(), @ak_special_zipcodes_126_226 )
+		) 
+	{
+		if ( $type eq 'NextDayAir' ) {
+			$zone = '126';
 		}
-		if ( $zone[ 0 ] !~ /\t/ ) {
-			my $len = $ref->{str_length} || 3;
-			@zone = grep /\S/, @zone;
-			@zone = grep /^[^"]/, @zone;
-			$zone[0] =~ s/[^\w,]//g;
-			$zone[0] =~ s/^\w+/low,high/;
-			@zone = grep /,/, @zone;
-			$zone[0] =~	s/\s*,\s*/\t/g;
-			for(@zone[1 .. $#zone]) {
-				s/^\s*(\w+)\s*,/make_three($1, $len) . ',' . make_three($1, $len) . ','/e;
-				s/^\s*(\w+)\s*-\s*(\w+),/make_three($1, $len) . ',' . make_three($2, $len) . ','/e;
-				s/\s*,\s*/\t/g;
-			}
+		elsif ( $type eq '2ndDayAir' ) {
+			$zone = '226';
 		}
-		$ref->{zone_data} = \@zone;
 	}
 	
-	return \%zones;
-}
-=item * make_three( $zone, $len )
-
-If a zip code doesn't have leading zeros, add them.
-
-=cut
-sub make_three {
-	my ($zone, $len) = @_;
-	$len = 3 if ! $len;
-	while ( length($zone) < $len ) {
-		$zone = "0$zone";
-	}
 	return $zone;
 }
 
-=item * intl()
+=item * calc_zone_info()
 
- - uses to_country() value to calculate.
-
- - returns 1/0 (true/false)
+Determines which zone (zone_name), and which zone file to use for lookup.
 
 =cut
-sub intl
-{
-	my $self = $_[ 0 ];
-	if ( $self->shipment->to_country() ) {
-		if ( $self->shipment->to_country() !~ /(US)|(United States)/) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-#
-# Need to translate all abbreviations to the full name.
-#
-sub _country_name_mapping
-{
-	my $self = shift;
-	
-	return unless $self->to_country();
-	
-	my $to_country = $self->to_country();
-	
-	if ( $to_country =~ /GB/ ) {
-		$to_country = 'United Kingdom';
-	}
-	
-	$self->to_country( $to_country );
-	return;
-}
-
-sub _massage_values
+sub calc_zone_info
 {
 	trace '()';
-	my $self = shift;
-	
-	
-	$self->_country_name_mapping();
-	
-	# TODO: do table lookup to find if it is residential or not.
-	if ( $self->service() =~ /GNDRES/i ) {
-		$self->to_residential( 1 );
-	}
-	
-	#
-	# Cache always disabled for Offline lookups: they are so fast already, the disk I/O
-	# of cache-ing is not worth it.
-	#
-	$self->cache( 0 );
+	my ( $self ) = @_;
 	
 	my $zone;
 	my $zone_file;
-	if ( $self->intl() ) {
-		$zone = $self->to_country();
-		$zone_file = Business::Shipping::Config::support_files() . "/data/ewwzone.csv";
+	if ( $self->domestic ) {
+		debug( "domestic" );
+		$zone = $self->make_three( $self->from_zip );
+		$zone_file = "/data/$zone.csv";
+	}
+	elsif ( $self->to_canada ) {
+		debug( "to canada" );
+		$zone = $self->make_three( $self->to_zip );
+		
+		if ( $self->service =~ /UPSSTD/i ) {
+			#
+			# TODO: Build a list of state names => "UPS Standard zone file names"
+			# 
+			if ( $self->from_ak_or_hi ) {
+				#
+				# An Alaska or Hawaii source has it's own complete set of data. :-(				
+				#
+				$self->error( "UPS Standard from Alaska or Hawaii not supported." ) and return;
+			}
+			my $state_to_upsstd_zone_file = cfg()->{ ups_information }->{ state_to_upsstd_zone_file };
+			my $states = $self->config_to_hash( $state_to_upsstd_zone_file );
+			debug( "my from_state = " . $self->from_state  );
+			if ( $states->{ $self->from_state } ) {
+				$zone_file = "/data/" . $states->{ $self->from_state };	
+				debug3(	"Found state in the state to upsstd_zone_file configuration "
+						. "parameter, zone_file = $zone_file " );
+			}
+			else {
+				$self->error(
+					"could not find state in \'state to UPS Standard zone file \' converter."
+				);
+				return;
+			}
+		}
+		else {
+			#
+			# WorldWide Expedited/Express uses the 'canww' zone file.
+			#
+			$zone_file = "/data/canww.csv";
+		}
 	}
 	else {
-		$zone = substr( $self->from_zip(), 0, 3 );
-		$zone_file = Business::Shipping::Config::support_files() . "/data/$zone.csv";
+		$zone = $self->to_country();
+		$zone_file = "/data/ewwzone.csv";
 	}
-	
-	$self->zone_name( $zone );
+	$zone_file = Business::Shipping::Config::support_files() . $zone_file;
 	
 	#
 	# If you can't find the zone file on the first try, try up to 10 times.
@@ -866,25 +1026,39 @@ sub _massage_values
 	# TODO: analyze all the zone files and use the metadata to build a map
 	# of which zips go to which file.
 	#
-	for ( my $c = 10; $c >= 1; $c-- ) {
-		if ( ! -f $zone_file ) {
-			$zone--;
-			$zone_file = Business::Shipping::Config::support_files() . "/data/$zone.csv";
+	# Only apply if the zone is purly numeric.
+	#
+	if ( $zone =~ /^\d+$/ ) {
+		for ( my $c = 10; $c >= 1; $c-- ) {
+			if ( ! -f $zone_file ) {
+				debug( "zone_file $zone_file doesn't exist, trying others nearby..." );
+				$zone--;
+				$zone_file = Business::Shipping::Config::support_files() . "/data/$zone.csv";
+			}
 		}
 	}
 	
-	debug( "zone file = $zone_file");
+	debug( "zone_name = $zone, zone file = $zone_file");
+	$self->zone_name( $zone );
 	$self->zone_file( $zone_file );
 	
-	#
-	# If this is an international order, we need to determine which state the shipper
-	# is in, then if it is east or west coast.  If west, then use the first "Express" field
-	# in the zone chart.  If east, then use the second.
-	#
+	return;
+}
+
+=item * determine_coast
+
+If this is an international order, we need to determine which state the shipper
+is in, then if it is east or west coast.  If west, then use the first "Express" field
+in the zone chart.  If east, then use the second.
+
+=cut
+sub determine_coast
+{
+	my ( $self ) = @_;
 	
+	#
+	#
 	if ( $self->intl() and $self->from_state() ) {
-		
-		$self->from_state( $self->state_to_abbrv( $self->from_state() ) );
 		
 		my $west_coast_states_aryref = cfg()->{ ups_information }->{ west_coast_states };
 		my $east_coast_states_aryref = cfg()->{ ups_information }->{ east_coast_states };
@@ -900,25 +1074,31 @@ sub _massage_values
 			}
 		}
 	}
+	
+	return;
 }
 
-sub state_to_abbrv
+	
+
+=item * _massage_values()
+
+Performs some final value modification just before the submit.
+
+=cut
+sub _massage_values
 {
-	my ( $self, $state ) = @_;
+	my ( $self ) = @_;
+	trace '()';
 	
-	if ( length( $state ) > 2 ) {
-		# get hash of state names -> abbreviations from the configuration.
-		my $state_abbreviations_aryref = cfg()->{ ups_information }->{ state_abbreviations };
-		
-		my %states;
-		for ( @$state_abbreviations_aryref ) {
-			my @abbrv_and_state = split( "\t", $_ );
-			$states{ $abbrv_and_state[ 0 ] } = $abbrv_and_state[ 1 ];
-		}
-		$state = $states{ $state } || $state;
-	}
+	#	
+	# TODO: do table lookup to find if it is residential or not.
+	# Currently, we just always assume it is residential.
+	#
+	$self->to_residential( 1 );
+	$self->calc_zone_info;
+	$self->determine_coast;
 	
-	return $state;
+	return;
 }
 
 1;

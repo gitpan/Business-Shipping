@@ -25,7 +25,7 @@ sub test
 		'access_key'	=> $ENV{ UPS_ACCESS_KEY }, 
 		'cache'	=> 0,
 		event_handlers => {
-			#trace => 'STDERR' 
+			#trace => 'STDERR', 
 		}
 	);
 	$shipment->submit( %args ) or die $shipment->error();
@@ -283,5 +283,16 @@ SKIP: {
 		weight			=> 5.5,
 	);
 	
+	simple_test(
+		%std_opts,
+		service			=> 'UPSSTD', 
+		to_country		=> 'CA',
+		to_city			=> 'Richmond',
+		to_zip			=> 'V6X3E1',
+		weight			=> 0.5,
+	);
+	
 	
 }
+
+1;
