@@ -2,20 +2,26 @@
 ##  General TODO
 ################################################################################
 
+* [Enh] Split the data into its own package, and add it to the bundle.
+  - Business::Shipping::Data
+  - Benefits: 
+    + Allows data to be updated separately from the code.
+    + It changes less often, so frequent code updates will not result it long
+      downloads.
+    + Update scripts can just do a CPAN install of the latest data module.
+
+* [Enh] Test on Sourceforge Compile Farm systems.
+  - Also test using older perl versions (e.g. 5.6.x).
+
 * [Enh] Build a replacement for ClassInfo and ClassAttribs that will be more 
   simple, efficient, and portable.
   
-* [Enh] Resurrect the event_handlers() method.  Log4perl configuration should 
-  allow manual overrides via event_handlers.
-
 * [Enh] Business::Shipping::UPS_XML
   - Add to documentation as an alternative to Business::Shipping
   - Maybe utilize the Parser code?
 
 * [Enh] Unit tests for each class.
   
-* [Enh] Remove default_package() and determine_shipper_from_self().
-
 * [Enh] Conform to coding style: private methods should be prefixed with an
    underscore. 
  
@@ -33,7 +39,7 @@
     replaced.
   - What are the longest operations?
   
-* [Doc] Memory footprint information: 
+* [Enh] Memory footprint information: 
    8+ MB when Offline is used (and stays).
    ---> 6.5 mb happens at the time of 
         "use Business::Shipping::RateRequest::Offline::UPS"
@@ -82,14 +88,6 @@ Anyway, I think I need to investigate it some more.
   If optimized for speed, then it will read the representation off the disk and
   keep it in memory.
 
-* [Enh] Split the data into its own package, and add it to the bundle.
-  - Business::Shipping::Data
-  - Benefits: 
-    + Allows data to be updated separately from the code.
-    + It changes less often, so frequent code updates will not result it long
-      downloads.
-    + Update scripts can just do a CPAN install of the latest data module.
-
 * [Enh] KLogging: Allow error format to specified 
   - With/without caller, line numbers.
 
@@ -121,7 +119,7 @@ Anyway, I think I need to investigate it some more.
   automatically utilize the table-lookup method.
    
 * [Enh] Many of the functions that are currently in 
-  Shipping::RateRequest::Offline::UPS should probably be moved somewhere else.
+  Shipping::RateRequest::UPS_Offline should probably be moved somewhere else.
   They work on one shipment at a time, and having them in the RateRequest 
   object makes it seem like they should be able to work on multiple shipments
   at once.  Perhaps make the first parameter the given shipment to be worked 
@@ -177,6 +175,7 @@ Anyway, I think I need to investigate it some more.
  
 * [Enh] Log4Perl enhancement
   - Remove "Business::Shipping" from the first part of logging output.
+  - Perhaps via Log::Log4perl::NDC->pop() ?
   - Perhaps via a Filter object?
 
 ################################################################################
@@ -301,7 +300,7 @@ Anyway, I think I need to investigate it some more.
  
  * [Bug] Return error message if trying to ship to military americas:
    - USP does not ship to APO or FPO addresses.
-
+   
  * [Bug] Be able to handle "mal-formed XML doc" error return from UPS.  
    - Right now, it still tries to parse as an XML doc.
 
@@ -322,6 +321,9 @@ Anyway, I think I need to investigate it some more.
 
 * [Enh] Test for ability to use within Safe?
   - Make runtime requires into optional startup or runtime requires.
+  - Allow an optional "use Business::Shipping 'preload_all'", which will preload
+    all modules that will ever be needed.  Other options (such as 
+    "preload_Online_UPS" could be implemented as well).
    
 ################################################################################
 ##  Online::FedEx 
@@ -336,6 +338,7 @@ Anyway, I think I need to investigate it some more.
   (see FedEx.pm).
 
 * See FedEx::DirectConnect
+  Business::FedEx::ShipRequest
   
 ################################################################################
 ##  Online::DHL 

@@ -2,11 +2,11 @@ package Business::Shipping::USPS_Online::Package;
 
 =head1 NAME
 
-Business::Shipping::Package::USPS
+Business::Shipping::USPS_Online::Package;
 
 =head1 VERSION
 
-$Rev: 159 $      $Date: 2004-09-09 20:26:14 -0700 (Thu, 09 Sep 2004) $
+$Rev: 164 $      $Date: 2004-09-13 17:12:54 -0700 (Mon, 13 Sep 2004) $
 
 =head1 METHODS
 
@@ -14,7 +14,7 @@ $Rev: 159 $      $Date: 2004-09-09 20:26:14 -0700 (Thu, 09 Sep 2004) $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 159 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 164 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;

@@ -1,6 +1,6 @@
 # Makefile.PL - Installation script for Business::Shipping
 # 
-# $Id: Makefile.PL 156 2004-07-09 17:04:55Z db-ship $
+# $Id: Makefile.PL 165 2004-09-14 16:20:29Z db-ship $
 #
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -23,7 +23,7 @@ my %my_globals = (
 WriteMakefile(
     NAME			=> 'Business::Shipping',
     VERSION_FROM	=> 'lib/Business/Shipping.pm',
-    ABSTRACT		=> 'Business::Shipping - Interface for shippers (UPS, USPS)',
+    ABSTRACT		=> 'Business::Shipping - Cost estimation and tracking for UPS and USPS',
     AUTHOR		    => 'Dan Browning <db@kavod.com>',
 	CONFIGURE		=> \&extra_WriteMakefile_options,
     PREREQ_PM		=>	{

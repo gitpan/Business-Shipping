@@ -10,7 +10,7 @@ Business::Shipping::Data - Database interface
 
 =head1 VERSION
 
-$Id: Data.pm 157 2004-07-09 21:25:49Z db-ship $
+$Id: Data.pm 165 2004-09-14 16:20:29Z db-ship $
 
 =head1 DESCRIPTION
 
@@ -22,7 +22,7 @@ Uses DBI for CSV file access.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 157 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
 @EXPORT = qw( record );
 
 use strict;
@@ -52,7 +52,7 @@ sub record
     my $query = "SELECT * FROM $table WHERE $key_column = \'$key\'";
     debug( $query );
     my $sth = sth( $query )
-        or die "Could not get sth: $@";
+        or logdie "Could not get sth: $@";
     my $hashref = $sth->fetchrow_hashref();
     #debug3( "hashref = " . Dumper( $hashref ) );
     
@@ -68,9 +68,9 @@ sub sth
     my $dbh = dbh();
     
     my $sth = $dbh->prepare( $query )
-        or die "Cannot prepare: " . $dbh->errstr();
+        or logdie "Cannot prepare: " . $dbh->errstr();
     
-    $sth->execute() or die "Cannot execute: " . $sth->errstr();;
+    $sth->execute() or logdie "Cannot execute: " . $sth->errstr();;
     
     return $sth;    
 }
@@ -84,7 +84,7 @@ sub dbh
         $dsn .= ";csv_eol=\n;";
         
         my $dbh = DBI->connect( $dsn )
-            or die "Cannot connect: " . $DBI::errstr;
+            or logdie "Cannot connect: " . $DBI::errstr;
     
         if ( $dsn =~ /^DBI:CSV/ ) {
 

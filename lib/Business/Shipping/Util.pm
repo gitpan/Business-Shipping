@@ -4,7 +4,7 @@ Business::Shipping::Util - Miscellaneous functions
 
 =head1 VERSION
 
-$Rev: 157 $      $Date: 2004-07-09 14:25:49 -0700 (Fri, 09 Jul 2004) $
+$Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
 
 =head1 DESCRIPTION
 
@@ -18,7 +18,7 @@ Many file-related functions, some others.
 
 package Business::Shipping::Util;
 
-$VERSION = do { my $r = q$Rev: 157 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
 @EXPORT  = ( 'element_in_array' );
 
 use strict;
@@ -96,9 +96,9 @@ sub _unzip_file
     if ( $status != AZ_OK )  {
         my $error = "Read of $zipName failed";
         #$self->user_error( $error );
-        die $error;
+        logdie $error;
     }
-    if ( $@ ) { die "_unzip_file error: $@"; }
+    if ( $@ ) { logdie "_unzip_file error: $@"; }
     
     $zip->extractTree( '', $destination_directory );
     

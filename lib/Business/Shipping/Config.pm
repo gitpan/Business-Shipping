@@ -1,6 +1,6 @@
 # Business::Shipping::Config - Configuration functions
 # 
-# $Id: Config.pm 158 2004-09-09 22:58:17Z db-ship $
+# $Id: Config.pm 165 2004-09-14 16:20:29Z db-ship $
 # 
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -14,7 +14,7 @@ Business::Shipping::Config - Configuration functions
 
 =head1 VERSION
 
-$Rev: 158 $      $Date: 2004-09-09 15:58:17 -0700 (Thu, 09 Sep 2004) $
+$Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
 
 =head1 DESCRIPTION
 
@@ -30,13 +30,14 @@ Config::IniFiles module.
 use constant DEFAULT_SUPPORT_FILES_DIR => '/var/perl/Business-Shipping';
 #use constant DEFAULT_SUPPORT_FILES_DIR => '~_~SUPPORT_FILES_DIR~_~';
 
-$VERSION = do { my $r = q$Rev: 158 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
 @EXPORT = qw/ cfg cfg_obj config_to_hash config_to_ary_of_hashes /;
 
 use strict;
 use warnings;
 use base ( 'Exporter' );
 use Config::IniFiles;
+use Business::Shipping::Logging;
 use Carp;
 
 my $support_files_dir;

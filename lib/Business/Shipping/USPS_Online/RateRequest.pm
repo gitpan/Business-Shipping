@@ -6,7 +6,7 @@ See Business::Shipping.pm POD for usage information.
 
 =head1 VERSION
 
-$Rev: 159 $      $Date: 2004-09-09 20:26:14 -0700 (Thu, 09 Sep 2004) $
+$Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
 
 =head1 SERVICE TYPES
 
@@ -40,7 +40,7 @@ $Rev: 159 $      $Date: 2004-09-09 20:26:14 -0700 (Thu, 09 Sep 2004) $
 
 package Business::Shipping::USPS_Online::RateRequest;
 
-$VERSION = do { my $r = q$Rev: 159 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -81,7 +81,7 @@ use Class::MethodMaker 2.0
                    'shipment'
                  ],
       scalar => [ { -static => 1, 
-                    -default => "shipment=>Business::Shipping::Shipment::USPS" 
+                    -default => "shipment=>Business::Shipping::USPS_Online::Shipment" 
                   }, 
                   'Has_a' 
                ],
@@ -120,7 +120,7 @@ sub _gen_request_xml
     
     my $package_count = 0;
     
-    die "No packages defined internally." unless ref $self->shipment->packages();
+    logdie "No packages defined internally." unless ref $self->shipment->packages();
     foreach my $package ( @{ $self->shipment->packages() } ) {
 
         my $id;

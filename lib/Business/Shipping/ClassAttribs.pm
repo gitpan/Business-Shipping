@@ -1,6 +1,6 @@
 # Business::Shipping::ClassAttribs - Class attribute functions
 # 
-# $Id: ClassAttribs.pm 161 2004-09-10 18:12:22Z db-ship $
+# $Id: ClassAttribs.pm 165 2004-09-14 16:20:29Z db-ship $
 # 
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -15,7 +15,7 @@ Business::Shipping::ClassAttribs - Class attribute functions
 
 =head1 VERSION
 
-$Rev: 161 $      $Date: 2004-09-10 11:12:22 -0700 (Fri, 10 Sep 2004) $
+$Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
 
 =head1 DESCRIPTION
 
@@ -28,7 +28,7 @@ via static class methods.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 161 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
 @EXPORT = qw( get_grouped_attrs );
 
 use strict;
@@ -85,6 +85,8 @@ sub get_grouped_attrs
     }
 
     my $object = $options{ object } || $self || eval "use $class_name; return $class_name->new;";
+    
+    $@ = '';
     
     debug3( "Creating ClassInfo object" );
     

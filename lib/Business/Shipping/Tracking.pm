@@ -1,6 +1,6 @@
 # Business::Shipping::Tracking - Abstract class
 # 
-# $Id: Tracking.pm 157 2004-07-09 21:25:49Z db-ship $
+# $Id: Tracking.pm 165 2004-09-14 16:20:29Z db-ship $
 # 
 # Copyright (c) 2004 Infogears Inc.  All rights reserved.
 # Portions Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights 
@@ -31,7 +31,7 @@ tracking_ids => ['EJ958083578US', 'EJ958083578US'],
 
 );
 
-$tracker->submit() || die $tracker->user_error();
+$tracker->submit() || logdie $tracker->user_error();
 my $hash = $tracker->results();
 
 use Data::Dumper;
@@ -44,7 +44,7 @@ Business::Tracking is an API for tracking shipments
 =cut
 
 
-$VERSION = do { my $r = q$Rev: 157 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;

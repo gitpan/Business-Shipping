@@ -1,4 +1,4 @@
-# $Id: RateRequest.pm 159 2004-09-10 03:26:14Z db-ship $
+# $Id: RateRequest.pm 165 2004-09-14 16:20:29Z db-ship $
 # 
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -81,7 +81,7 @@ UPS_ACCESS_KEY
     
 =cut
 
-$VERSION = do { my $r = q$Rev: 159 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -255,7 +255,7 @@ sub _gen_request_xml
     debug( 'called' );
     my ( $self ) = shift;
 
-    die "No packages defined internally." unless ref $self->shipment->packages();
+    logdie "No packages defined internally." unless ref $self->shipment->packages();
     foreach my $package ( @{$self->shipment->packages()} ) {
         #print "package $package\n";
     }

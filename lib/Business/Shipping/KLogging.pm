@@ -15,12 +15,15 @@ via your own wrapper.  See Business::Shipping::Logging as an example wrapper.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 158 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
 use Carp;
 use Log::Log4perl;
+
+$Business::Shipping::KLogging::Current_Level = 'WARN';
+@Business::Shipping::KLogging::Levels = ( 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL' );
 
 =item * debug
 
@@ -71,8 +74,10 @@ BEGIN
         warn       warn
         error      error
         fatal      fatal
+        logdie     logdie
+        logwarn    logwarn
     );
-    my @subs = keys %subs;
+    my @subs = sort keys %subs;
     
     sub subs
     {
