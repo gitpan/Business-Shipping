@@ -1,18 +1,16 @@
 =head1 NAME
 
-Business::Shipping::Logging - Logging interface
+Business::Shipping::Logging - Interface between KLogging and Business::Shipping
 
 =head1 VERSION
 
-$Id: Logging.pm 165 2004-09-14 16:20:29Z db-ship $
+$Rev $
 
 =head1 DESCRIPTION
 
 Wrapper for KLogger.
 
 =head1 METHODS
-
-=over 4
 
 =cut
 
@@ -26,7 +24,7 @@ use Business::Shipping::KLogging;
 use Business::Shipping::Config;
 
 @EXPORT = Business::Shipping::KLogging::subs;
-$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 189 $; $r =~ /\d+/; $&; };
 
 foreach my $_sub ( Business::Shipping::KLogging::subs ) {
     eval "\*$_sub = \*Business::Shipping::KLogging::$_sub";
@@ -39,7 +37,13 @@ my $file         = Business::Shipping::Config::support_files()
 my $caller_depth = 2;
 
 bs_init();
-    
+
+=head2 bs_init()
+
+Initializes KLogging with values from Business::Shipping::Config.
+
+=cut
+
 sub bs_init
 {
     Business::Shipping::KLogging::init(
@@ -50,6 +54,12 @@ sub bs_init
     
     return;
 }
+
+=head2 log_level()
+
+Does the heavy lifting for Business::Shipping->log_level().
+
+=cut
 
 sub log_level
 {
@@ -67,14 +77,9 @@ sub log_level
     return $log_level;
 }
 
-
-
-
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 

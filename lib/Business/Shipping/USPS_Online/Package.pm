@@ -2,19 +2,17 @@ package Business::Shipping::USPS_Online::Package;
 
 =head1 NAME
 
-Business::Shipping::USPS_Online::Package;
+Business::Shipping::USPS_Online::Package
 
 =head1 VERSION
 
-$Rev: 164 $      $Date: 2004-09-13 17:12:54 -0700 (Mon, 13 Sep 2004) $
+$Rev: 190 $
 
 =head1 METHODS
 
-=over 4
-
 =cut
 
-$VERSION = do { my $r = q$Rev: 164 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -23,31 +21,31 @@ use base ( 'Business::Shipping::Package' );
 use Business::Shipping::Logging;
 use Business::Shipping::Util;
 
-=item * container
+=head2 container
 
 Default 'None'. 
 
-=item * size
+=head2 size
 
 Default 'Regular'.
 
-=item * machinable
+=head2 machinable
 
 Default 'False'.
 
-=item * mail_type
+=head2 mail_type
 
 Default 'Package'.
 
-=item * pounds
+=head2 pounds
 
-=item * ounces
+=head2 ounces
 
 =cut
 
 use Class::MethodMaker 2.0
     [
-      new    => [ { -hash => 1, -init => 'this_init' }, 'new' ],
+      new    => [ { -hash => 1 }, 'new' ],
       scalar => [ { -default => 'None'    }, 'container'  ],
       scalar => [ { -default => 'Regular' }, 'size'       ],
       scalar => [ { -default => 'False'   }, 'machinable' ],
@@ -74,9 +72,7 @@ use Class::MethodMaker 2.0
                 ]
     ];
     
-sub this_init { $_[ 0 ]->shipper( 'USPS' ); }
-
-=item * Required()
+=head2 Required()
 
 We use a hand-written "Required()" method for this class, because we require one
 of the following: pounds, ounces, or weight.  It doesn't matter which one it is,
@@ -97,7 +93,7 @@ sub Required
     return 'weight';
 }
 
-=item * weight
+=head2 weight
 
 Overrides the standard weight definition so that it can correctly set pounds &
 ounces.
@@ -124,7 +120,7 @@ sub weight
     return $out_weight;
 }
 
-=item * set_lbs_oz
+=head2 set_lbs_oz
 
 Set pounds and ounces.  Converts from fractional pounds.
 
@@ -151,7 +147,7 @@ sub set_lbs_oz
     return;
 }
 
-=item * lbs_oz_to_weight
+=head2 lbs_oz_to_weight
 
 Converts pounds + ounces to fractional weight.  Returns weight.
 
@@ -171,7 +167,7 @@ sub lbs_oz_to_weight
     return $weight;
 }
 
-=item * _round_up
+=head2 _round_up
 
 =cut
 
@@ -187,8 +183,6 @@ sub _round_up
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 

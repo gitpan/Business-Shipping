@@ -10,7 +10,7 @@ Business::Shipping::Data - Database interface
 
 =head1 VERSION
 
-$Id: Data.pm 183 2004-09-14 22:57:41Z db-ship $
+$Rev: 190 $
 
 =head1 DESCRIPTION
 
@@ -18,11 +18,9 @@ Uses DBI for CSV file access.
 
 =head1 METHODS
 
-=over 4
-
 =cut
 
-$VERSION = do { my $r = q$Rev: 183 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
 @EXPORT = qw( record );
 
 use strict;
@@ -32,7 +30,7 @@ use Business::Shipping::Logging;
 use Business::Shipping::Config;
 use DBI;
 
-=item * record( $table, $field, $key, $opt )
+=head2 record( $table, $field, $key, $opt )
 
 Performs a single-record lookup.  Analagous to Interchange tag_data() function.
 
@@ -59,6 +57,13 @@ sub record
     return $hashref->{ $field };
 }    
 
+
+=head2 sth()
+
+Returns statement handle.
+
+=cut
+
 sub sth
 {
     my ( $query ) = @_;
@@ -74,6 +79,12 @@ sub sth
     
     return $sth;    
 }
+
+=head2 dbh()
+
+Returns database handle
+
+=cut
 
 sub dbh
 {
@@ -122,6 +133,12 @@ sub dbh
     return $::dbh_store->{ main };
 }
 
+=head2 get_primary_key
+
+Takes a table and returns the name of the column that is the primary key.  
+
+=cut
+
 sub get_primary_key
 {
     my ( $table ) = @_;
@@ -139,8 +156,6 @@ sub get_primary_key
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 

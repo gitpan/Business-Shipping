@@ -1,21 +1,12 @@
-# Business::Shipping::ClassAttribs - Class attribute functions
-# 
-# $Id: ClassAttribs.pm 165 2004-09-14 16:20:29Z db-ship $
-# 
-# Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
-# This program is free software; you may redistribute it and/or modify it under
-# the same terms as Perl itself. See LICENSE for more info.
-# 
-
 package Business::Shipping::ClassAttribs;
 
 =head1 NAME
 
-Business::Shipping::ClassAttribs - Class attribute functions
+Business::Shipping::ClassAttribs - Determine class attributes
 
 =head1 VERSION
 
-$Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
+$Rev: 190 $
 
 =head1 DESCRIPTION
 
@@ -28,7 +19,7 @@ via static class methods.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
 @EXPORT = qw( get_grouped_attrs );
 
 use strict;

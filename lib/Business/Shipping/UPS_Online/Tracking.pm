@@ -1,6 +1,6 @@
 # Business::Shipping::UPS_Online::Tracking - Abstract class for tracking shipments
 # 
-# $Id: Tracking.pm 159 2004-09-10 03:26:14Z db-ship $
+# $Id: Tracking.pm 190 2004-09-19 04:29:09Z db-ship $
 # 
 # Copyright (c) 2004 InfoGears Inc.  All Rights Reserved.
 # Portions Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved. 
@@ -11,9 +11,7 @@
 
 =head1 NAME
 
-Business::Shipping::UPS_Online::Tracking - A UPS module for Tracking Packages
-
-See Tracking.pm POD for usage information.
+Business::Shipping::UPS_Online::Tracking
 
 =head2 EXAMPLE 
 
@@ -86,7 +84,7 @@ the same terms as Perl itself. See LICENSE for more info.
 
 package Business::Shipping::Tracking::UPS;
 
-$VERSION = do { my $r = q$Rev: 159 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;

@@ -10,7 +10,7 @@ Business::Shipping::RateRequest::Offline - Abstract class for cost calculation.
 
 =head1 VERSION
 
-$Rev: 157 $      $Date: 2004-07-09 14:25:49 -0700 (Fri, 09 Jul 2004) $
+$Rev: 189 $      $Date: 2004-09-18 21:16:10 -0700 (Sat, 18 Sep 2004) $
 
 =head1 DESCRIPTION
 
@@ -23,7 +23,7 @@ a few miscellaneous functions.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 157 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 189 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -34,7 +34,12 @@ use Business::Shipping::Package;
 use Business::Shipping::Logging;
 use Class::MethodMaker 2.0 [ new => [ qw/ -hash new / ] ];
     
-# We don't have online things to request.
+=item * perform_action()
+
+For compatibility with parent class
+
+=cut
+
 sub perform_action {}
 
 =item * cache()

@@ -1,11 +1,3 @@
-# Makefile.PL - Installation script for Business::Shipping
-# 
-# $Id: Makefile.PL 186 2004-09-17 17:05:53Z db-ship $
-#
-# Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
-# This program is free software; you may redistribute it and/or modify it under
-# the same terms as Perl itself. See LICENSE for more info.
-
 use 5.006000;
 use ExtUtils::MakeMaker;
 use File::Copy;
@@ -20,31 +12,41 @@ my %my_globals = (
 	SUPPORT_FILES_DIR	=> '/var/perl/Business-Shipping'
 );
 
+=head1 USAGE
+
+ perl Makefile.PL [--use_defaults=<1|0>] [-u=<1|0>]
+ 
+ -u=1 or --use_defaults=1: Use default values, do not ask for values.  
+ 
+ This option is only available if you have Getopt::Mixed installed.
+
+=cut
+
+$::UseDefaults = 0;
+if ( @ARGV ) {
+    eval "use Getopt::Mixed";
+    if ( ! $@ ) {
+        our $opt_u;
+        Getopt::Mixed::getOptions( 'u:i use_defaults>u' );
+        my %rr_params;
+        if ( $opt_u ) {
+            $::UseDefaults = 1;
+        }
+    }
+}
+
 WriteMakefile(
     NAME			=> 'Business::Shipping',
     VERSION_FROM	=> 'lib/Business/Shipping.pm',
-    ABSTRACT		=> 'Business::Shipping - Cost estimation and tracking for UPS and USPS',
+    ABSTRACT		=> 'Business::Shipping - Rates and tracking for UPS and USPS',
     AUTHOR		    => 'Dan Browning <db@kavod.com>',
 	CONFIGURE		=> \&extra_WriteMakefile_options,
-    PREREQ_PM		=>	{
-		'Bundle::DBD::CSV'		         => 0,
-        'Business::Shipping::DataFiles'  => 0,  # Only needed for UPS_Offline.
-		'Cache::FileCache'		         => 0,
-		'Class::MethodMaker::Engine'     => 0,
-		'Clone'					         => 0,
-		'Config::IniFiles'		         => 0,
-		'Crypt::SSLeay'			         => 0,
-		'Getopt::Mixed'		      	     => 0,
-		'Log::Log4perl'                  => 0,
-        'LWP::UserAgent'		         => 0,
-		'Math::BaseCnv'		    	     => 0,
-		'Scalar::Util'			         => '1.10',
-		'XML::DOM' 				         => 0,
-		'XML::Simple'			         => '2.05',
-	},
-		#'Archive::Zip'			     => 0,      # For updates only
-    	#'Devel::Required'	      	 => '0.03', # For documentation updates only
-
+    PREREQ_PM		=> { 
+        'Class::MethodMaker::Engine' => 0,
+        'Log::Log4perl'              => 0,
+        'Scalar::Util'               => 1.10,
+        'Test::More'                 => 0.40,
+    },
 );
 
 # Override the standard "install" target, so that it calls "support_files_install"
@@ -84,6 +86,8 @@ support_files_install :
 sub extra_WriteMakefile_options {
     
     my $module = "Business::Shipping";
+    if ( not $::UseDefaults ) {
+
     my $question = qq(
              ---  $module Support files directory  ---
   
@@ -99,10 +103,12 @@ installed: Business::Shipping::DataFiles.
 
 $module Support files directory:);
 
+    
 	$my_globals{ SUPPORT_FILES_DIR } = prompt( 
         $question, 
 		$my_globals{ SUPPORT_FILES_DIR },
 	);
+    } # end if not use defaults
     
 	$my_globals{ SUPPORT_FILES_DIR } =~ s:[\\/]\s*$::;
 	$my_globals{ SUPPORT_FILES_DIR } =~ s:^\s*::;
@@ -127,8 +133,9 @@ $module Support files directory:);
 	return \%EXTRA_CONFIG_OPTIONS;
 }
 
+=head1 METHODS
 
-=head2 * subst( files => [ ], variables => { } )
+=head2 subst( files => [ ], variables => { } )
 
 Converts variables, like so:
  

@@ -2,11 +2,11 @@ package Business::Shipping::Debug;
 
 =head1 NAME
 
-Business::Shipping::Debug - Compatibility wrapper for Logging.  Depreciated.
+Business::Shipping::Debug - For backwards compatibility only
 
 =head1 VERSION
 
-$Rev: 158 $      $Date: 2004-09-09 15:58:17 -0700 (Thu, 09 Sep 2004) $
+$Rev: 190 $
 
 =head1 SYNOPSIS
 
@@ -46,7 +46,7 @@ or error messages.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 158 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
 @EXPORT = qw( debug debug3 trace log_error error );
 
 use strict;

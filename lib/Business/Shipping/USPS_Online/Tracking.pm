@@ -1,13 +1,12 @@
 # Business::Shipping::USPS_Online::Tracking - Abstract class for tracking shipments
 # 
-# $Id: Tracking.pm 159 2004-09-10 03:26:14Z db-ship $
+# $Id: Tracking.pm 190 2004-09-19 04:29:09Z db-ship $
 # 
 # Copyright (c) 2004 InfoGears Inc.  All Rights Reserved.
 # Portions Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved. 
 # 
 # This program is free software; you may redistribute it and/or modify it under
 # the same terms as Perl itself. See LICENSE for more info.
-# 
 
 =head1 NAME
 
@@ -62,7 +61,7 @@ the same terms as Perl itself. See LICENSE for more info.
 
 package Business::Shipping::Tracking::USPS;
 
-$VERSION = do { my $r = q$Rev: 159 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;

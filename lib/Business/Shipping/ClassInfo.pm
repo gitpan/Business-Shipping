@@ -2,11 +2,11 @@ package Business::Shipping::ClassInfo;
 
 =head1 NAME
 
-Business::Shipping::ClassInfo - Used by ClassAttribs
+Business::Shipping::ClassInfo - ClassAttribs helper functions
 
 =head1 VERSION
 
-$Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
+$Rev: 190 $
 
 =head1 METHODS
 
@@ -14,7 +14,7 @@ $Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;

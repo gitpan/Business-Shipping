@@ -1,12 +1,10 @@
 =head1 NAME
 
-Business::Shipping::USPS_Online::RateRequest - Estimates shipping cost online 
-
-See Business::Shipping.pm POD for usage information.
+Business::Shipping::USPS_Online::RateRequest 
 
 =head1 VERSION
 
-$Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
+$Rev: 190 $
 
 =head1 SERVICE TYPES
 
@@ -34,13 +32,11 @@ $Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
 
 =head1 METHODS
 
-=over 4
-
 =cut
 
 package Business::Shipping::USPS_Online::RateRequest;
 
-$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -54,13 +50,13 @@ use LWP::UserAgent;
 use HTTP::Request;
 use HTTP::Response;
 
-=item * domestic
+=head2 domestic
 
 =cut
 
 use Class::MethodMaker 2.0
     [
-      new    => [ { -hash => 1, -init => 'this_init' }, 'new' ],
+      new    => [ { -hash => 1 }, 'new' ],
       scalar => [ { -default => 1 }, 'domestic' ],
       scalar => [ { -default => 'http://production.shippingapis.com/ShippingAPI.dll'  }, 'prod_url' ],
       scalar => [ { -default => 'http://testing.shippingapis.com/ShippingAPItest.dll' }, 'test_url' ],
@@ -89,13 +85,7 @@ use Class::MethodMaker 2.0
       scalar => [ { -static => 1 }, 'Zones' ],      
     ];
 
-sub this_init { $_[ 0 ]->shipper( 'USPS' ); }
-
-# For compatibility.
-
-sub to_residential { return 0; }
-
-=item * _gen_request_xml
+=head2 _gen_request_xml
 
 Generate the XML document.
 
@@ -197,7 +187,7 @@ sub _gen_request_xml
     return ( $request_xml );
 }
 
-=item * _gen_request
+=head2 _gen_request
 
 =cut
 
@@ -218,7 +208,7 @@ sub _gen_request
     return ( $request );
 }
 
-=item * _massage_values
+=head2 _massage_values
 
 =cut
 
@@ -238,7 +228,7 @@ sub _massage_values
     return;
 }
 
-=item * _handle_response
+=head2 _handle_response
 
 =cut
 
@@ -334,14 +324,15 @@ sub _handle_response
     }
     debug( 'Setting charges to ' . $charges );
     my $packages = [ { 'charges' => $charges, }, ];
-    my $results = { $self->shipment->shipper() => $packages };
+    my $shipper_name = $self->shipment->shipper() || 'Shipper';
+    my $results = { $shipper_name => $packages };
     $self->results( $results );
     
     trace 'returning success';
     return $self->is_success( 1 );
 }
 
-=item * _domestic_or_intl
+=head2 _domestic_or_intl
 
 Decide if we are domestic or international for this run.
 
@@ -362,11 +353,17 @@ sub _domestic_or_intl
     return;
 }
 
+=head2 to_residential()
+
+For compatibility with UPS modules.  Always returns 0.
+
+=cut
+
+sub to_residential { return 0; }
+
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 

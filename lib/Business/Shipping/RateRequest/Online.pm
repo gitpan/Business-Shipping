@@ -2,19 +2,17 @@ package Business::Shipping::RateRequest::Online;
 
 =head1 NAME
 
-Business::Shipping::RateRequest::Online - Abstract class for shipping cost rating.
+Business::Shipping::RateRequest::Online - Abstract rates class
 
 =head1 VERSION
 
-$Rev: 184 $      $Date: 2004-09-16 19:34:19 -0700 (Thu, 16 Sep 2004) $
+$Rev: 189 $
 
 =head1 METHODS
 
-=over 4
-
 =cut
 
-$VERSION = do { my $r = q$Rev: 184 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 189 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -25,14 +23,18 @@ use LWP::UserAgent;
 use Cache::FileCache;
 use Class::MethodMaker 2.0
     [
-      new    => [ { -hash => 1, -init => 'this_init' }, 'new' ],
+      new    => [ { -hash => 1 }, 'new' ],
       scalar => [ 'test_mode', 'user_id', 'password' ],
       scalar => [ { -static => 1, -default => 'user_id, password' }, 'Required' ],
       scalar => [ { -static => 1, -default => 'prod_url, test_url' }, 'Optional' ],
       scalar => [ 'response' ],
     ];
 
-sub this_init {}
+=head2 perform_action()
+
+Sends request to server.
+
+=cut
 
 sub perform_action
 {
@@ -125,8 +127,6 @@ sub _get_response
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 

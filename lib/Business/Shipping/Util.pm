@@ -4,7 +4,7 @@ Business::Shipping::Util - Miscellaneous functions
 
 =head1 VERSION
 
-$Rev: 165 $      $Date: 2004-09-14 09:20:29 -0700 (Tue, 14 Sep 2004) $
+$Rev: 190 $
 
 =head1 DESCRIPTION
 
@@ -18,7 +18,7 @@ Many file-related functions, some others.
 
 package Business::Shipping::Util;
 
-$VERSION = do { my $r = q$Rev: 165 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
 @EXPORT  = ( 'element_in_array' );
 
 use strict;

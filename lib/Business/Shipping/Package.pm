@@ -1,6 +1,6 @@
 # Business::Shipping::Package - Abstract class
 # 
-# $Id: Package.pm 157 2004-07-09 21:25:49Z db-ship $
+# $Id: Package.pm 190 2004-09-19 04:29:09Z db-ship $
 # 
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -15,7 +15,7 @@ Business::Shipping::Package - Abstract class
 
 =head1 VERSION
 
-$Rev: 157 $      $Date: 2004-07-09 14:25:49 -0700 (Fri, 09 Jul 2004) $
+$Rev: 190 $
 
 =head1 DESCRIPTION
 
@@ -24,21 +24,19 @@ implementation.
 
 =head1 METHODS
 
-=over 4
-
 =cut
 
-$VERSION = do { my $r = q$Rev: 157 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
 use base ( 'Business::Shipping' );
 
-=item * $self->weight()
+=head2 $package->weight()
 
 Accessor for weight.
 
-=item * $self->id()
+=head2 $package->id()
 
 Package ID (for unique identification in a list of packages).
 
@@ -53,29 +51,9 @@ use Class::MethodMaker 2.0
       scalar => [ { -static => 1, -default => 'weight'      }, 'Unique'   ]
     ];
 
-#
-# TODO: How do charges() and set_price()/get_charges() interplay?
-# If one is not needed, get rid of it.
-# At least rename for consistency.
-#
-sub set_price
-{
-    my ( $self, $service, $price ) = @_;
-    $self->{'price'}->{$service} = $price;
-    return $self->{'price'}->{$service};    
-}
-
-sub get_charges
-{
-    my ( $self, $service ) = @_;    
-    return $self->{ 'price' }->{ $service };    
-}
-
 1;
 
 __END__
-
-=back
 
 =head1 AUTHOR
 
