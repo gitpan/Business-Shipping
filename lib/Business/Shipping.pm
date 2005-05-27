@@ -1,10 +1,10 @@
 # Business::Shipping - Rates and tracking for UPS and USPS
 #
-# $Id: Shipping.pm 207 2004-12-04 04:25:09Z db-ship $
+# $Id: Shipping.pm 244 2005-05-27 03:41:32Z db-ship $
 #
-# Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
+# Copyright (c) 2003-2005 Daniel Browning <db@kavod.com>. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
-# the same terms as Perl itself. See LICENSE for more info.
+# the same terms as Perl itself. See doc/License for more info.
 
 package Business::Shipping;
 
@@ -14,11 +14,11 @@ Business::Shipping - Rates and tracking for UPS and USPS
 
 =head1 VERSION
 
-Version 1.56
+Version 1.90
 
 =cut
 
-$VERSION = '1.56';
+$VERSION = '1.90';
 
 =head1 SYNOPSIS
 
@@ -28,25 +28,35 @@ $VERSION = '1.56';
  
  my $rate_request = Business::Shipping->rate_request(
      shipper   => 'UPS_Offline',
-     service   => 'GNDRES',
-     from_zip  => '98682',
+     service   => 'Ground Residential',
+     from_zip  => '98683',
      to_zip    => '98270',
      weight    =>  5.00,
  );    
  
- $rate_request->go() or die $rate_request->user_error();
+ $rate_request->execute() or die $rate_request->user_error();
  
- print $rate_request->total_charges();
+ print $rate_request->rate();
 
 =head1 FEATURES
 
 Business::Shipping currently supports three shippers:
 
-=head2 UPS_Online: United Parcel Service
+=head2 UPS_Offline: United Parcel Service
 
 =over 4
 
-=item * Shipment rate estimation using UPS Online WebTools.
+=item * Shipment rate estimation using offline tables.
+
+=back
+
+=head2 UPS_Online: United Parcel Service using UPS OnLine Tools (disabled)
+
+=over 4
+
+=item * Disabled as of version 1.90, see doc/UPS_Online_disabled.txt.
+
+=item * Shipment rate estimation
 
 =item * Shipment tracking.
 
@@ -60,12 +70,12 @@ Gets rates for all the services in one request:
      from_zip     => '98682',
      to_zip       => '98270',
      weight       => 5.00,
-     user_id      => $ENV{ UPS_USER_ID },
-     password     => $ENV{ UPS_PASSWORD },
-     access_key   => $ENV{ UPS_ACCESS_KEY }
+     user_id      => '',
+     password     => '',
+     access_key   => '',
  );
  
- $rr_shop->go() or die $rr_shop->user_error();
+ $rr_shop->execute() or die $rr_shop->user_error();
  
  foreach my $shipper ( @$results ) {
      print "Shipper: $shipper->{name}\n\n";
@@ -80,16 +90,17 @@ Gets rates for all the services in one request:
 
 =item * C.O.D. (Cash On Delivery)
 
-#DeliveryConfirmation and COD cannot coexist on a single Pakcage (DeliveryConfirmation is not yet implemented in Business::Shiping).
-#cod_code: The code associated with the type of COD.  Values: 1 = Regular COD, 2 = Express COD, 3 = Tagless COD
-
 Add these options to your rate request for C.O.D.:
 
 cod: enable C.O.D.
 
-cod_funds_code:  The code that indicates the type of funds that will be used for the COD payment.  Required if CODCode is 1, 2, or 3.  Valid Values: 0 = All Funds Allowed.  8 = cashier's check or money order, no cash allowed.
+cod_funds_code:  The code that indicates the type of funds that will be used for the COD payment.  
+Required if CODCode is 1, 2, or 3.  Valid Values: 0 = All Funds Allowed.  8 = cashier's check or 
+money order, no cash allowed.
 
 cod_value: The COD value for the package.  Required if COD option is present.  Valid values: 0.01 - 50000.00
+
+cod_code: The code associated with the type of COD.  Values: 1 = Regular COD, 2 = Express COD, 3 = Tagless COD
  
 For example:
 
@@ -99,49 +110,42 @@ For example:
 
 =back
 
-=head2 UPS_Offline: United Parcel Service
-
-=over 4
-
-=item * Shipment rate estimation using offline tables.
-
-=back
-
 =head2 USPS_Online: United States Postal Service
 
 =over 4
 
 =item * Shipment rate estimation using USPS Online WebTools.
 
-=item * Shipment tracking.
+=item * Shipment tracking
 
-=back 
+=back
 
 =head1 INSTALLATION
 
  perl -MCPAN -e 'install Bundle::Business::Shipping'
 
-See the INSTALL file for more details.
+See doc/INSTALL.
 
 =head1 REQUIRED MODULES
 
-Some of these modules are not required to use only one shipper.  See the INSTALL
-file for more information.
+The following modules are required for offline UPS rate estimation.  See doc/INSTALL.
 
- Bundle::DBD::CSV (any)
  Business::Shipping::DataFiles (any)
- Cache::FileCache (any)
  Class::MethodMaker::Engine (any)
- Clone (any)
  Config::IniFiles (any)
- Crypt::SSLeay (any)
  Log::Log4perl (any)
+
+=head1 OPTIONAL MODULES
+
+The following modules are used by online rate estimation and tracking.  See doc/INSTALL.
+
+ Cache::FileCache (any)
+ Clone (any)
+ Crypt::SSLeay (any)
  LWP::UserAgent (any)
- Math::BaseCnv (any)
- Scalar::Util (any)
  XML::DOM (any)
  XML::Simple (2.05)
-
+ 
 =head1 GETTING STARTED
 
 Be careful to read, understand, and comply with the terms of use for the 
@@ -195,9 +199,9 @@ L<http://www.ups.com/content/us/en/resources/service/terms/index.html>
 
 =head1 ERROR/DEBUG HANDLING
 
-Log4perl is used for logging error, debug, etc. messages.  See 
-config/log4perl.conf.  For simple manipulation of the current log level, use
-the Business::Shipping->log_level( $log_level ) class method (below).
+Log4perl is used for logging error, debug, etc. messages.  For simple manipulation of the current log level, 
+use the Business::Shipping->log_level( $log_level ) class method (below).  For more advanced logging/debugging
+options, see config/log4perl.conf.
 
 =head1 Preloading Modules
 
@@ -286,7 +290,7 @@ sub import
                     if ( lc $val eq lc $shipper ) {
                         push @to_load, ( 
                             @$mod_list, 
-                            'Business::Shipping::$shipper::RateRequest',
+                            'Business::Shipping::' . $shipper . '::RateRequest',
                         );
                     }
                 }
@@ -368,7 +372,7 @@ sub validate
     my @required = $self->get_grouped_attrs( 'Required' );
     my @optional = $self->get_grouped_attrs( 'Optional' );
     
-    debug( "required = " . join (', ', @required ) ); 
+    debug(  "required = " . join (', ', @required ) ); 
     debug3( "optional = " . join (', ', @optional ) );    
     
     my @missing;
@@ -457,7 +461,7 @@ sub rate_request
     # COMPAT: shipper compatibility
     # 1. Really old: "UPS" or "USPS" (assumes Online::)
     # 2. Semi-old:   "Online::UPS", "Offline::UPS", or "Online::USPS"
-    # 3. New:        "UPS_Online", "UPS_Offline", or "USPS_Online"
+    # 3. Current:    "UPS_Online", "UPS_Offline", or "USPS_Online"
     
     my %old_to_new = (
         'Online::UPS'  => 'UPS_Online',
@@ -467,12 +471,11 @@ sub rate_request
         'USPS' => 'USPS_Online'
     );
     
-    while ( my ( $old, $new ) = each %old_to_new ) {
-        if ( $shipper eq $old ) {
-            $shipper = $new;
-        }
-    }
-        
+    $shipper = $old_to_new{ $shipper } if $old_to_new{ $shipper };
+    
+    # /COMPAT    
+    
+    
     my $rr = Business::Shipping->_new_subclass( $shipper . '::RateRequest' );
     logdie "New $shipper::RateRequest object was undefined." if not defined $rr;
     
@@ -483,8 +486,8 @@ sub rate_request
 
 =head2 Business::Shipping->log_level()
 
-Simple alternative to editing the config/log4perl.conf file.  Sets the log level for 
-all Business::Shipping objects.  
+Simple alternative to editing the config/log4perl.conf file.  Sets the log level
+for all Business::Shipping objects.  
 
 Takes a scalar that can be 'debug', 'info', 'warn', 'error', or 'fatal'.
 
@@ -492,15 +495,15 @@ Takes a scalar that can be 'debug', 'info', 'warn', 'error', or 'fatal'.
 
 *log_level = *Business::Shipping::Logging::log_level;
 
-=head2 Business::Shipping->_new_subclass()
-
-Private Method.
-
-Generates an object of a given subclass dynamically.  Will dynamically 'use' 
-the corresponding module, unless runtime module loading has been disabled via 
-the 'preload' option.
-
-=cut
+#=head2 Business::Shipping->_new_subclass()
+#
+#Private Method.
+#
+#Generates an object of a given subclass dynamically.  Will dynamically 'use' 
+#the corresponding module, unless runtime module loading has been disabled via 
+#the 'preload' option.
+#
+#=cut
 
 sub _new_subclass
 {
@@ -523,17 +526,15 @@ sub _new_subclass
 
 # COMPAT: event_handlers()
 
-=head2 $obj->event_handlers()
-
-For backwards compatibility only.
-
-=cut
+#=head2 $obj->event_handlers()
+#
+#For backwards compatibility with 1.06 and prior only.
+#
+#=cut
 
 sub event_handlers
 {
     my ( $self, $event_handlers_hash ) = @_;
-    
-    use Data::Dumper;
     
     KEY: foreach my $key ( keys %$event_handlers_hash ) {
         $key = uc $key;
@@ -569,12 +570,12 @@ Important modules that are related to Business::Shipping:
 
 =item * Business::Shipping::DataFiles - Required for offline cost estimation
 
-=item * Business::Shipping::DataTools - Tools that generating DataFiles 
+=item * Business::Shipping::DataTools - Tools that generate DataFiles 
         (optional)
 
 =back
 
-Other CPAN modules that are simliar to Business::Shipping:
+Other Perl modules that are simliar to Business::Shipping:
 
 =over 4
 
@@ -583,6 +584,10 @@ very few prerequisites.  Supports shipments that originate in USA and Canada.
 
 =item * Business::UPS - Online cost estimation module that uses the UPS web form
 instead of the UPS Online Tools.  For shipments that originate in the USA only.
+
+=item * http://www.halofree.com/lib/public/code/Ship/UPS.pm
+
+=item * http://www.halofree.com/lib/public/code/Ship/USPS.pm
 
 =back
  
@@ -596,25 +601,22 @@ author and/or on their website or in their application.
 =item * Interchange e-commerce system ( L<http://www.icdevgroup.org> ).  See 
     C<UserTag/business-shipping.tag>.
 
+=item * Many E-Commerce websites, such as Phatmotorsports.com.
+
 =item * PaymentOnline.com software.
 
 =item * The "Shopping Cart" Wobject for the WebGUI project, by Andy Grundman 
-    <andy@kahncentral.net>.
-    L<http://www.plainblack.com/wobjects?wid=1143&func=viewSubmission&sid=654>
-    L<http://www.plainblack.com/uploads/1143/654/webgui-shopping-cart-1.0.tar.gz>
+    L<http://www.plainblack.com/shopping_cart_wobject>
 
 =item * Mentioned in YAPC 2004 Presentation: "Writing web applications with perl ..."
-    L<http://www.beamartyr.net/YAPC-2004/text25.html>
-
-=item * Phatmotorsports.com, EndPCNoise.com, and many other E-Commerce websites.
 
 =back
 
 =head1 WEBSITE
 
-The website carries the most recent version.
-
 L<http://www.kavod.com/Business-Shipping>
+
+Also see L<http://search.cpan.org/~dbrowning/Business-Shipping>
 
 =head1 SUPPORT
 
@@ -625,20 +627,20 @@ automatically be notified of progress on your bug as the author makes changes.
 
 =head1 KNOWN BUGS
 
-See the TODO file for a comprehensive list of known bugs.
+See the C<doc/Todo> file for a comprehensive list of known bugs.
 
 =head1 CREDITS
 
-See the CREDITS file. 
+Many people have contributed to this module, please see the C<doc/Credits> file. 
 
 =head1 AUTHOR
 
-Dan Browning E<lt>F<db@kavod.com>E<gt>, Kavod Technologies, L<http://www.kavod.com>.
+Daniel Browning E<lt>F<db@kavod.com>E<gt>, Kavod Technologies, L<http://www.kavod.com>.
 
 =head1 COPYRIGHT AND LICENCE
 
-Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
-This program is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.  See LICENSE for more info.
+Copyright (c) 2003-2005 Daniel Browning E<lt>F<db@kavod.com>E<gt>. All rights 
+reserved.  This program is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.  See C<doc/License> for more info.
 
 =cut

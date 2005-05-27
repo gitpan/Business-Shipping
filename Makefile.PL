@@ -2,6 +2,8 @@ use 5.006000;
 use ExtUtils::MakeMaker;
 use File::Copy;
 use English;
+use strict;
+use warnings;
 
 # Auto-update REQUIRED MODULES documentation if needed
 #eval "use Devel::Required text => [ '' ], pod => [qw(lib/Business/Shipping.pm), qw(doc/README.pod), qw(doc/INSTALL.pod), qw(UserTag/business-shipping.tag)]";
@@ -9,7 +11,10 @@ use English;
 # Defaults
 
 my %my_globals = (
-	SUPPORT_FILES_DIR	=> '/var/perl/Business-Shipping'
+    PREFIX_DIR  => '/usr/local/B_Shipping'
+	#CONFIG_DIR	=> '/usr/local/B_Shipping/config', # These are set manually later on, so don't bother 
+    #LOG_DIR     => '/usr/local/B_Shipping/log',   # defaulting them.
+    #DATA_DIR	=> '/usr/local/B_Shipping/data',
 );
 
 =head1 USAGE
@@ -23,7 +28,7 @@ my %my_globals = (
 =cut
 
 $::UseDefaults = $ENV{ BS_USE_DEFAULTS } ? 1 : 0;
-$::UseOptions;
+$::UseOptions = 0;
 
 if ( @ARGV ) {
     eval "use Getopt::Mixed";
@@ -73,11 +78,13 @@ sub MY::install {
 	return $new;
 }
 
+
+# Currently there is no data files installation, because the data files are installed by the DataFiles module.
 sub MY::postamble {
 	return qq{
 docs :
 	find lib -name '*.pm' -or -name '*.pod' -exec podchecker -nowarnings {} \\;
-	pod2text doc/INSTALL.pod > INSTALL
+	pod2text doc/INSTALL.pod > doc/INSTALL
 	pod2html doc/INSTALL.pod > doc/INSTALL.html
 	pod2text doc/INSTALL.pod > doc/INSTALL.txt
 	pod2text lib/Business/Shipping.pm > README
@@ -85,55 +92,66 @@ docs :
 	pod2html lib/Business/Shipping.pm > doc/README.html
 	
 support_files_install :
-	\@echo "Installing support files (database, configuration, etc.) to $my_globals{SUPPORT_FILES_DIR}"
-	\@\$(MKPATH) $my_globals{SUPPORT_FILES_DIR}/log
-	\@\$(MKPATH) $my_globals{SUPPORT_FILES_DIR}/config
-	\@\$(CP) --recursive --force config/* $my_globals{SUPPORT_FILES_DIR}/config/
+	\@echo "Installing configuration files to $my_globals{CONFIG_DIR}"
+	\@\$(MKPATH) $my_globals{LOG_DIR}
+	\@\$(MKPATH) $my_globals{CONFIG_DIR}
+	\@\$(CP) --recursive --force config/* $my_globals{CONFIG_DIR}/
 };  #/qq
 }
 
 sub extra_WriteMakefile_options {
     
-    my $module = "Business::Shipping";
+    
     if ( not $::UseDefaults ) {
-
-    my $question = qq(
-             ---  $module Support files directory  ---
+        my $module = 'Business::Shipping';
+        
+        my $question = qq(
+             ---  $module configuration, logging, and data directory  ---
   
-$module module comes with various support files for configuration, logging, etc.
-Please input the path you would like to copy these files to.  You can modify the
-path later by changing the Config.pm file.
+What directory should be used for storing configuration files, logging files, and data?
 
-On many systems, this directory will only be accessible by the user who 
-installed perl, typically root.
-
-Note: If you wish to use offline cost estimation, the data files should be 
-installed: Business::Shipping::DataFiles.
-
-$module Support files directory:);
+$module support files directory:);
 
     
-	$my_globals{ SUPPORT_FILES_DIR } = prompt( 
-        $question, 
-		$my_globals{ SUPPORT_FILES_DIR },
-	);
+        $my_globals{ PREFIX_DIR } = prompt( 
+            $question, 
+            $my_globals{ PREFIX_DIR },
+        );
+    
+        $my_globals{ PREFIX_DIR } =~ s:[\\/]\s*$::;
+        $my_globals{ PREFIX_DIR } =~ s:^\s*::;
     } # end if not use defaults
     
-	$my_globals{ SUPPORT_FILES_DIR } =~ s:[\\/]\s*$::;
-	$my_globals{ SUPPORT_FILES_DIR } =~ s:^\s*::;
-
+    $my_globals{ CONFIG_DIR } = $my_globals{ PREFIX_DIR } . '/config';
+    $my_globals{ LOG_DIR    } = $my_globals{ PREFIX_DIR } . '/log';
+    $my_globals{ DATA_DIR   } = $my_globals{ PREFIX_DIR } . '/data';
+    
     # Now we are going to substitute the support files directory in 
     # lib/Business/Shipping/Config.pm
     
     subst( 
         variables => {
-            SUPPORT_FILES_DIR => $my_globals{ SUPPORT_FILES_DIR }
+            DEFAULT_CONFIG_DIR  => $my_globals{ CONFIG_DIR },
+            DEFAULT_LOG_DIR     => $my_globals{ LOG_DIR    },
+            DEFAULT_DATA_DIR    => $my_globals{ DATA_DIR   },
         },
         files     => [
             'lib/Business/Shipping/Config.pm',
-            'config/log4perl.conf'
+            'config/log4perl.conf',
         ]
     );
+
+    subst( 
+        variables => {
+            UPS_ONLINE_DISABLED => 1,
+        },
+        files     => [
+            'lib/Business/Shipping/UPS_Online/RateRequest.pm',
+            'lib/Business/Shipping/UPS_Online/Tracking.pm',
+        ]
+    );
+    
+    
 
 	my %EXTRA_CONFIG_OPTIONS;
     #$EXTRA_CONFIG_OPTIONS{ } 
@@ -143,6 +161,8 @@ $module Support files directory:);
 }
 
 =head1 METHODS
+
+
 
 =head2 subst( files => [ ], variables => { } )
 

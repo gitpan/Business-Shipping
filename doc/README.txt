@@ -2,7 +2,7 @@ NAME
     Business::Shipping - Rates and tracking for UPS and USPS
 
 VERSION
-    Version 1.56
+    Version 1.90
 
 SYNOPSIS
   Rate request example
@@ -10,21 +10,25 @@ SYNOPSIS
  
      my $rate_request = Business::Shipping->rate_request(
          shipper   => 'UPS_Offline',
-         service   => 'GNDRES',
-         from_zip  => '98682',
+         service   => 'Ground Residential',
+         from_zip  => '98683',
          to_zip    => '98270',
          weight    =>  5.00,
      );    
  
-     $rate_request->go() or die $rate_request->user_error();
+     $rate_request->execute() or die $rate_request->user_error();
  
-     print $rate_request->total_charges();
+     print $rate_request->rate();
 
 FEATURES
     Business::Shipping currently supports three shippers:
 
-  UPS_Online: United Parcel Service
-    * Shipment rate estimation using UPS Online WebTools.
+  UPS_Offline: United Parcel Service
+    * Shipment rate estimation using offline tables.
+
+  UPS_Online: United Parcel Service using UPS OnLine Tools (disabled)
+    * Disabled as of version 1.90, see doc/UPS_Online_disabled.txt.
+    * Shipment rate estimation
     * Shipment tracking.
     * Rate Shopping.
         Gets rates for all the services in one request:
@@ -35,12 +39,12 @@ FEATURES
              from_zip     => '98682',
              to_zip       => '98270',
              weight       => 5.00,
-             user_id      => $ENV{ UPS_USER_ID },
-             password     => $ENV{ UPS_PASSWORD },
-             access_key   => $ENV{ UPS_ACCESS_KEY }
+             user_id      => '',
+             password     => '',
+             access_key   => '',
          );
  
-         $rr_shop->go() or die $rr_shop->user_error();
+         $rr_shop->execute() or die $rr_shop->user_error();
  
          foreach my $shipper ( @$results ) {
              print "Shipper: $shipper->{name}\n\n";
@@ -54,11 +58,6 @@ FEATURES
          }
 
     * C.O.D. (Cash On Delivery)
-        #DeliveryConfirmation and COD cannot coexist on a single Pakcage
-        (DeliveryConfirmation is not yet implemented in Business::Shiping).
-        #cod_code: The code associated with the type of COD. Values: 1 =
-        Regular COD, 2 = Express COD, 3 = Tagless COD
-
         Add these options to your rate request for C.O.D.:
 
         cod: enable C.O.D.
@@ -71,42 +70,44 @@ FEATURES
         cod_value: The COD value for the package. Required if COD option is
         present. Valid values: 0.01 - 50000.00
 
+        cod_code: The code associated with the type of COD. Values: 1 =
+        Regular COD, 2 = Express COD, 3 = Tagless COD
+
         For example:
 
                 cod            => 1,
                 cod_value      => 400.00,
                 cod_funds_code => 0,
 
-  UPS_Offline: United Parcel Service
-    * Shipment rate estimation using offline tables.
-
   USPS_Online: United States Postal Service
     * Shipment rate estimation using USPS Online WebTools.
-    * Shipment tracking.
+    * Shipment tracking
 
 INSTALLATION
      perl -MCPAN -e 'install Bundle::Business::Shipping'
 
-    See the INSTALL file for more details.
+    See doc/INSTALL.
 
 REQUIRED MODULES
-    Some of these modules are not required to use only one shipper. See the
-    INSTALL file for more information.
+    The following modules are required for offline UPS rate estimation. See
+    doc/INSTALL.
 
-     Bundle::DBD::CSV (any)
      Business::Shipping::DataFiles (any)
-     Cache::FileCache (any)
      Class::MethodMaker::Engine (any)
-     Clone (any)
      Config::IniFiles (any)
-     Crypt::SSLeay (any)
      Log::Log4perl (any)
+
+OPTIONAL MODULES
+    The following modules are used by online rate estimation and tracking.
+    See doc/INSTALL.
+
+     Cache::FileCache (any)
+     Clone (any)
+     Crypt::SSLeay (any)
      LWP::UserAgent (any)
-     Math::BaseCnv (any)
-     Scalar::Util (any)
      XML::DOM (any)
      XML::Simple (2.05)
-
+ 
 GETTING STARTED
     Be careful to read, understand, and comply with the terms of use for the
     provider that you will use.
@@ -141,10 +142,10 @@ GETTING STARTED
     or phone: 1-800-344-7779.
 
 ERROR/DEBUG HANDLING
-    Log4perl is used for logging error, debug, etc. messages. See
-    config/log4perl.conf. For simple manipulation of the current log level,
-    use the Business::Shipping->log_level( $log_level ) class method
-    (below).
+    Log4perl is used for logging error, debug, etc. messages. For simple
+    manipulation of the current log level, use the
+    Business::Shipping->log_level( $log_level ) class method (below). For
+    more advanced logging/debugging options, see config/log4perl.conf.
 
 Preloading Modules
     To preload all modules, call Business::Shipping with this syntax:
@@ -224,24 +225,14 @@ METHODS
 
     Takes a scalar that can be 'debug', 'info', 'warn', 'error', or 'fatal'.
 
-  Business::Shipping->_new_subclass()
-    Private Method.
-
-    Generates an object of a given subclass dynamically. Will dynamically
-    'use' the corresponding module, unless runtime module loading has been
-    disabled via the 'preload' option.
-
-  $obj->event_handlers()
-    For backwards compatibility only.
-
 SEE ALSO
     Important modules that are related to Business::Shipping:
 
     * Business::Shipping::DataFiles - Required for offline cost estimation
-    * Business::Shipping::DataTools - Tools that generating DataFiles
+    * Business::Shipping::DataTools - Tools that generate DataFiles
     (optional)
 
-    Other CPAN modules that are simliar to Business::Shipping:
+    Other Perl modules that are simliar to Business::Shipping:
 
     * Business::Shipping::UPS_XML - Online cost estimation module that has
     very few prerequisites. Supports shipments that originate in USA and
@@ -249,6 +240,8 @@ SEE ALSO
     * Business::UPS - Online cost estimation module that uses the UPS web
     form instead of the UPS Online Tools. For shipments that originate in
     the USA only.
+    * http://www.halofree.com/lib/public/code/Ship/UPS.pm
+    * http://www.halofree.com/lib/public/code/Ship/USPS.pm
 
 Use of this software
     It is appreciated when users mention their use of Business::Shipping to
@@ -256,22 +249,17 @@ Use of this software
 
     * Interchange e-commerce system ( <http://www.icdevgroup.org> ). See
     "UserTag/business-shipping.tag".
+    * Many E-Commerce websites, such as Phatmotorsports.com.
     * PaymentOnline.com software.
     * The "Shopping Cart" Wobject for the WebGUI project, by Andy Grundman
-    <andy@kahncentral.net>.
-    <http://www.plainblack.com/wobjects?wid=1143&func=viewSubmission&sid=654
-    >
-    <http://www.plainblack.com/uploads/1143/654/webgui-shopping-cart-1.0.tar
-    .gz>
+    <http://www.plainblack.com/shopping_cart_wobject>
     * Mentioned in YAPC 2004 Presentation: "Writing web applications with
-    perl ..." <http://www.beamartyr.net/YAPC-2004/text25.html>
-    * Phatmotorsports.com, EndPCNoise.com, and many other E-Commerce
-    websites.
+    perl ..."
 
 WEBSITE
-    The website carries the most recent version.
-
     <http://www.kavod.com/Business-Shipping>
+
+    Also see <http://search.cpan.org/~dbrowning/Business-Shipping>
 
 SUPPORT
     This module is supported by the author. Please report any bugs or
@@ -281,17 +269,19 @@ SUPPORT
     author makes changes.
 
 KNOWN BUGS
-    See the TODO file for a comprehensive list of known bugs.
+    See the "doc/Todo" file for a comprehensive list of known bugs.
 
 CREDITS
-    See the CREDITS file.
+    Many people have contributed to this module, please see the
+    "doc/Credits" file.
 
 AUTHOR
-    Dan Browning <db@kavod.com>, Kavod Technologies, <http://www.kavod.com>.
+    Daniel Browning <db@kavod.com>, Kavod Technologies,
+    <http://www.kavod.com>.
 
 COPYRIGHT AND LICENCE
-    Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights
+    Copyright (c) 2003-2005 Daniel Browning <db@kavod.com>. All rights
     reserved. This program is free software; you can redistribute it and/or
-    modify it under the same terms as Perl itself. See LICENSE for more
-    info.
+    modify it under the same terms as Perl itself. See "doc/License" for
+    more info.
 

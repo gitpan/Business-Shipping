@@ -6,13 +6,13 @@ Business::Shipping::RateRequest::Online - Abstract rates class
 
 =head1 VERSION
 
-$Rev: 189 $
+$Rev: 240 $
 
 =head1 METHODS
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 189 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 240 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -50,6 +50,8 @@ sub perform_action
                         "Content: " . $self->response->content() 
                     ); 
     }
+    use Data::Dumper;
+    #debug3 "self->response = " . Dumper( $self->response() );
     
     return ( undef );
 }

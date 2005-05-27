@@ -4,12 +4,13 @@ Business::Shipping::USPS_Online::RateRequest
 
 =head1 VERSION
 
-$Rev: 194 $
+$Rev: 221 $
 
 =head1 SERVICE TYPES
 
 =head2 Domestic
 
+    All
     EXPRESS
     Priority
     Parcel
@@ -19,16 +20,16 @@ $Rev: 194 $
 
 =head2 International
  
-    'Global Express Guaranteed Document Service',
-    'Global Express Guaranteed Non-Document Service',
-    'Global Express Mail (EMS)',
-    'Global Priority Mail - Flat-rate Envelope (large)',
-    'Global Priority Mail - Flat-rate Envelope (small)',
-    'Global Priority Mail - Variable Weight Envelope (single)',
-    'Airmail Letter Post',
-    'Airmail Parcel Post',
-    'Economy (Surface) Letter Post',
-    'Economy (Surface) Parcel Post',
+ Global Express Guaranteed Document Service
+ Global Express Guaranteed Non-Document Service
+ Global Express Mail (EMS)
+ Global Priority Mail - Flat-rate Envelope (Large)
+ Global Priority Mail - Flat-rate Envelope (Small)
+ Global Priority Mail - Variable Weight (Single)
+ Airmail Letter-post
+ Airmail Parcel Post
+ Economy (Surface) Letter-post
+ Economy (Surface) Parcel Post
 
 =head1 METHODS
 
@@ -36,7 +37,7 @@ $Rev: 194 $
 
 package Business::Shipping::USPS_Online::RateRequest;
 
-$VERSION = do { my $r = q$Rev: 194 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 221 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -61,7 +62,7 @@ use Class::MethodMaker 2.0
       scalar => [ { -default => 'http://production.shippingapis.com/ShippingAPI.dll'  }, 'prod_url' ],
       scalar => [ { -default => 'http://testing.shippingapis.com/ShippingAPItest.dll' }, 'test_url' ],
       scalar => [ { -type    => 'Business::Shipping::USPS_Online::Shipment',
-                    -default_ctor => 'new',
+                    -default_ctor => 'default_new',
                     -forward => [ 
                                   'from_city',
                                   'to_city',
@@ -72,6 +73,7 @@ use Class::MethodMaker 2.0
                                   'size',
                                   'machinable',
                                   'mail_type',
+                                  'shipper',
                                 ],
                    },
                    'shipment'
@@ -101,7 +103,7 @@ sub _gen_request_xml
     #
     my $rateReqDoc = XML::DOM::Document->new(); 
     my $rateReqEl = $rateReqDoc->createElement( 
-        $self->domestic() ? 'RateRequest' : 'IntlRateRequest' 
+        $self->domestic() ? 'RateV2Request' : 'IntlRateRequest' 
     );
     
     $rateReqEl->setAttribute('USERID', $self->user_id() ); 
@@ -148,20 +150,25 @@ sub _gen_request_xml
         $packageEl->appendChild($ouncesEl);
         
         if ( $self->domestic() ) {
-            my $containerEl = $rateReqDoc->createElement('Container'); 
-            my $containerText = $rateReqDoc->createTextNode( $package->container() ); 
-            $containerEl->appendChild($containerText); 
-            $packageEl->appendChild($containerEl); 
+            if ( defined( $package->container() ) ) {
+                my $containerEl = $rateReqDoc->createElement('Container'); 
+                my $containerText = $rateReqDoc->createTextNode( $package->container() ); 
+                $containerEl->appendChild($containerText); 
+                $packageEl->appendChild($containerEl);
+            }
             
             my $oversizeEl = $rateReqDoc->createElement('Size'); 
             my $oversizeText = $rateReqDoc->createTextNode( $package->size() ); 
             $oversizeEl->appendChild($oversizeText); 
             $packageEl->appendChild($oversizeEl); 
-            
-            my $machineEl = $rateReqDoc->createElement('Machinable'); 
-            my $machineText = $rateReqDoc->createTextNode( $package->machinable() ); 
-            $machineEl->appendChild($machineText); 
-            $packageEl->appendChild($machineEl);
+        
+            if( defined( $package->machinable() ) )
+            {
+                my $machineEl = $rateReqDoc->createElement('Machinable'); 
+                my $machineText = $rateReqDoc->createTextNode( $package->machinable() ); 
+                $machineEl->appendChild($machineText); 
+                $packageEl->appendChild($machineEl);
+            }
         }
         else {
             my $mailTypeEl = $rateReqDoc->createElement('MailType'); 
@@ -198,7 +205,7 @@ sub _gen_request
     
     my $request = $self->SUPER::_gen_request();
     # This is how USPS slightly varies from Business::Shipping
-    my $new_content = 'API=' . ( $self->domestic() ? 'Rate' : 'IntlRate' ) . '&XML=' . $request->content();
+    my $new_content = 'API=' . ( $self->domestic() ? 'RateV2' : 'IntlRate' ) . '&XML=' . $request->content();
     $request->content( $new_content );
     $request->header( 'content-length' => length( $request->content() ) );
 
@@ -230,6 +237,14 @@ sub _massage_values
 
 =head2 _handle_response
 
+=head2 error_details()
+
+See L<Business::Shipping::RateRequest> for full documentation.
+Adds the following keys to each error:
+
+ package_id	: The unique package id in which the error occurred
+ error_source	: The component that generated the error
+
 =cut
 
 sub _handle_response
@@ -237,23 +252,67 @@ sub _handle_response
     trace '()';
     my $self = shift;
     
+    ### Keep the root element, because USPS might 
+    ### return an error and 'Error' will be the root element
     my $response_tree = XML::Simple::XMLin( 
         $self->response()->content(), 
         ForceArray => 0, 
-        KeepRoot => 0 
+        KeepRoot => 1 
     );
+    ### But discard the root element if it is RateV2Response
+    $response_tree = $response_tree->{RateV2Response} if( exists($response_tree->{RateV2Response}) );
     
-    # TODO: Handle multiple packages errors.
-    # (this doesn't seem to handle multiple packagess errors very well)
-    if ( $response_tree->{Error} or $response_tree->{Package}->{Error} ) {
-        my $error = $response_tree->{Package}->{Error};
-        $error ||= $response_tree->{Error};
-        my $error_number         = $error->{Number};
-        my $error_source         = $error->{Source};
-        my $error_description    = $error->{Description};
-        $self->user_error( "$error_source: $error_description ($error_number)" );
-        return( undef );
+    # Handle errors
+    ### Get all errors
+    my $errors = [];
+    push( @$errors, $response_tree->{Error} ) if( exists($response_tree->{Error}) );
+    if( ref $response_tree->{Package} eq 'HASH' )
+    {
+	if( exists($response_tree->{Package}{Error}) )
+	{
+	    push( @$errors, $response_tree->{Package}{Error} );
+	    $errors->[$#{$errors}]{PackageID} = $response_tree->{Package}{ID};
+	}
     }
+    elsif( ref $response_tree->{Package} eq 'ARRAY' )
+    {
+	foreach my $pkg (@{$response_tree->{Package}})
+	{
+	    if( exists($pkg->{Error}) )
+	    {
+		push( @$errors, $pkg->{Error} );
+		$errors->[$#{$errors}]{PackageID} = $pkg->{ID};
+	    }	    
+	}
+    }
+    if( @$errors > 0 )
+    {
+	### Loop through the errors, gathering the details and
+	### create a simple error message string
+	my (@errorDetails, $errorMsg);
+	foreach my $errorHash (@$errors)
+	{
+	    ### Get some of the error details
+	    my $code = $errorHash->{Number};
+	    my $error = $errorHash->{Description};
+	    my $source = $errorHash->{Source};
+	    my $pkg_src = $errorHash->{PackageID};
+	    
+	    push( @errorDetails, { error_code => $code,
+				   error_msg => $error,
+				   package_id => $pkg_src,
+				   error_source => $source } );
+	    if( !defined($errorMsg) && $error )
+	    {
+		$errorMsg = "$source: $error ($code)";
+	    }
+	} # foreach error
+
+	$self->user_error( $errorMsg );
+	$self->error_details( @errorDetails );
+	
+	return $self->is_success(0);
+    } # if errors
     
     #
     # This is a "large" debug.
@@ -262,6 +321,7 @@ sub _handle_response
     #
     
     my $charges;
+    my @services_results = ();    
     
     #
     # TODO: Get the pricing routines to work for multi-packages (not just
@@ -269,20 +329,42 @@ sub _handle_response
     #
     if ( $self->domestic() ) {
         #
-        # Domestic *doesn't* tell you the price of all services for that package
+        # Domestic *does* tell you the price of all services if you ask for service "ALL"
+        # If you ask for a specific service, it still might send more then one price.  
+        # For example if you ask for "Flat Rate Box" service, it will send you two prices,
+        # one for 'Priority Mail Flat Rate Box (11.25" x 8.75" x 6")' and the other for
+        # 'Priority Mail Flat Rate Box (14" x 12" x 3.5")'
         #
         
         $charges = $response_tree->{ Package }->{ Postage };
+        if( defined($charges) )
+        {
+            $charges = [ $charges ] if( ref $charges ne 'ARRAY' );
+            foreach my $chg (@$charges)
+            {
+            next if( ref $chg ne 'HASH' );
+            my $service_hash = {
+                code       => undef,
+                nick       => undef,
+                name       => $chg->{MailService},
+                deliv_days => undef,
+                deliv_date => undef,
+                charges    => $chg->{Rate},
+                charges_formatted    => Business::Shipping::Util::currency( {}, $chg->{Rate} ),
+                deliv_date_formatted => undef,
+            };
+            push( @services_results, $service_hash );
+            }
+        }
     }
     else {
         #
         # International *does* tell you the price of all services for each package
         #
         
-        foreach my $service ( @{ $response_tree->{ Package }->{ Service } } ) {
-            debug( "Trying to find a matching service by service description..." );
+        foreach my $service ( @{ $response_tree->{ IntlRateResponse }->{ Package }->{ Service } } ) {
+            debug( "Trying to find a matching service by service description (" . $service->{ SvcDescription } . ")..." );
             debug( "Charges for $service->{SvcDescription} service = " . $service->{Postage} );
-            
             # BUG: you can't check if the service descriptions match, because many countries use
             # different descriptions for the same service.  So we try to match by description
             # *or* by mail_type.  (There are probably many services with the same mail_type, how 
@@ -310,12 +392,27 @@ sub _handle_response
             # Still can't find the right service...
             if ( ! $charges ) {
                 my $error_msg = "The requested service (" . ( $self->service() || 'none entered by user' )
-                        . ") did not match any services that was available for that country.";
+                        . ") did not match any services that were available for that country.";
                 
                 print STDERR $error_msg;
                 $self->user_error( $error_msg );
             }
         }
+	
+	if( defined($charges) )
+	{
+	    my $service_hash = {
+		    code       => undef,
+		    nick       => undef,
+		    name       => undef,
+		    deliv_days => undef,
+		    deliv_date => undef,
+		    charges    => $charges,
+		    charges_formatted    => Business::Shipping::Util::currency( {}, $charges ),
+		    deliv_date_formatted => undef,
+		};
+	    push( @services_results, $service_hash );
+	}
     }
     
     if ( ! $charges ) { 
@@ -327,12 +424,7 @@ sub _handle_response
     my $results = [
         {
             name  => $self->shipper() || 'USPS_Online', 
-            rates => [
-                {
-                    charges   => $charges,
-                    charges_formatted => Business::Shipping::Util::currency( {}, $charges ),
-                },
-            ]
+            rates => \@services_results,
         }
     ];
     

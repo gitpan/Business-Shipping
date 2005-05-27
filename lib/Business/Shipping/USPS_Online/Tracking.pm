@@ -1,6 +1,6 @@
 # Business::Shipping::USPS_Online::Tracking - Abstract class for tracking shipments
 # 
-# $Id: Tracking.pm 190 2004-09-19 04:29:09Z db-ship $
+# $Id: Tracking.pm 214 2005-03-04 17:21:22Z db-ship $
 # 
 # Copyright (c) 2004 InfoGears Inc.  All Rights Reserved.
 # Portions Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved. 
@@ -61,7 +61,7 @@ the same terms as Perl itself. See LICENSE for more info.
 
 package Business::Shipping::Tracking::USPS;
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 214 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -73,7 +73,12 @@ use LWP::UserAgent;
 use HTTP::Request;
 use HTTP::Response;
 use Clone;
-use Class::MethodMaker 2.0 [ new => [ { -hash => 1, -init => 'this_init' }, 'new' ] ];
+use Class::MethodMaker 2.0 
+    [ 
+      new	=> [ { -hash => 1, -init => 'this_init' }, 'new' ],
+      scalar	=> [ 'prod_url' ],
+      scalar	=> [ 'test_url' ],
+      ];
  
 sub this_init
 {
@@ -290,7 +295,7 @@ sub _handle_response
 
         
         
-        $self->results({$id => $result});
+        $self->results($id => $result);
       }
     }
 

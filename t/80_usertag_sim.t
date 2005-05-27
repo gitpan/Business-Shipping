@@ -6,7 +6,7 @@ Simulator for Business::Shipping Interchange UserTag
 
 =head1 VERSION
 
-This is simulator version ___, which is based on usertag version 1.13.
+This is simulator version 221, which is based on usertag version 1.13.
 
 =head1 DESCRIPTION
 
@@ -29,7 +29,7 @@ Eventually, it should run a gamut of tests, for all modules, etc.
 
 =cut
 
-$VERSION = do { my @r=(q$Rev: 207 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r }; 
+$VERSION = do { my @r=(q$Rev: 240 $=~/\d+/g); sprintf "%d."."%03d"x$#r,@r }; 
 
 use strict;
 use warnings;
@@ -39,6 +39,8 @@ use Test::More;
 plan skip_all => '' unless Business::Shipping::Config::calc_req_mod( 'UPS_Online' );
 plan skip_all => '' unless Business::Shipping::Config::calc_req_mod( 'USPS_Online' );
 plan skip_all => '' unless Business::Shipping::Config::calc_req_mod( 'UPS_Offline' );
+plan skip_all => 'No credentials' 
+    unless $ENV{ UPS_USER_ID } and $ENV{ UPS_PASSWORD } and $ENV{ UPS_ACCESS_KEY };
 plan 'no_plan';
 
 
@@ -46,7 +48,14 @@ plan 'no_plan';
 use Data::Dumper;
 our $Values = {};
 our $Variable = {};
-our $Tag = {};
+
+package Nothing;
+sub Nothing::data { return ''; };
+our $Tag = bless( {}, "Nothing" ); # TODO: add the 'data' routine that will return a sample value.
+package main;
+
+
+
 sub Log { print @_ };
 sub uneval { return Dumper( @_ ); };
 
@@ -234,7 +243,6 @@ sub business_shipping_sim {
 my $charges;
 my $opt;
 
-print "testing Online::USPS...\n";
 $opt = {
     'user_id'    => $ENV{ USPS_USER_ID },
     'password' => $ENV{ USPS_PASSWORD },
@@ -246,15 +254,11 @@ $opt = {
     'to_zip'    => '20852',
 };
 $charges = business_shipping_sim( 'Online::USPS', $opt );
-print $charges if $charges;
-print "\n\n";
+ok( $charges, "USPS_Online OK: $charges" );
 
-print "testing USPS again...\n";
 $charges = business_shipping_sim( 'USPS', $opt );
-print $charges if $charges;
-print "\n\n";
+ok( $charges, "USPS again OK: $charges" );
 
-print "testing UPS...\n";
 $opt = {
     'reparse' => "1",
     'service' => "GNDRES",
@@ -268,7 +272,4 @@ $opt = {
 };
 
 $charges = business_shipping_sim( 'UPS', $opt );
-print $charges if $charges;
-print "\n\n";
-
-
+ok( $charges, "UPS OK: $charges" );

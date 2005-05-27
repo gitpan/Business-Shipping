@@ -10,7 +10,7 @@ Business::Shipping::Data - Database interface
 
 =head1 VERSION
 
-$Rev: 190 $
+$Rev: 244 $
 
 =head1 DESCRIPTION
 
@@ -20,7 +20,7 @@ Uses DBI for CSV file access.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 244 $; $r =~ /\d+/; $&; };
 @EXPORT = qw( record );
 
 use strict;
@@ -28,7 +28,6 @@ use warnings;
 use base ( 'Exporter' );
 use Business::Shipping::Logging;
 use Business::Shipping::Config;
-use DBI;
 
 =head2 record( $table, $field, $key, $opt )
 

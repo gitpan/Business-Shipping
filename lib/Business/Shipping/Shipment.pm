@@ -6,11 +6,11 @@ Business::Shipping::Shipment - Abstract class
 
 =head1 VERSION
 
-$Rev: 194 $
+$Rev: 240 $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 194 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 240 $; $r =~ /\d+/; $&; };
 
 =head1 DESCRIPTION
 
@@ -50,8 +50,7 @@ use Business::Shipping::Util;
 use Class::MethodMaker 2.0
     [
       new    => [ { -hash => 1 }, 'new' ],
-      scalar => [ qw/current_package_index from_zip from_city to_zip to_city/   
-                ],
+      scalar => [ qw/current_package_index from_zip from_city to_zip to_city shipment_num/ ],
       array  => [ { -type => 'Business::Shipping::Package' }, 'packages' ],
       scalar => [ { -static => 1, -default => 'packages=>Business::Shipping::Package' }, 'Has_a' ],
       scalar => [ { -static => 1, 
@@ -104,7 +103,21 @@ sub package0 { $_[ 0 ]->packages_index( 0 ) }
 *default_package = *package0;
 *dflt_pkg        = *package0;
 
-sub weight { $_[ 0 ]->package0->weight( @_ ) }
+sub weight
+{
+    my ( $self, $in_weight ) = @_;
+    
+    if ( $in_weight ) {
+        return $self->package0->weight( $in_weight );
+    }
+    else {
+        my $sum_weight;
+        foreach my $package ( $self->packages ) {
+            $sum_weight += $package->weight;
+        }
+        return $sum_weight;
+    } 
+}
 
 =head2 total_weight
 
@@ -377,15 +390,17 @@ sub add_package
 {
     my ( $self, %options ) = @_;
     
-    trace( 'called with' . uneval( @_ ) );
+    #trace( 'called with ' . uneval( @_ ) );
     
     if ( not $self->shipper ) {
         error "Need shipper to get the package subclass.";
         return;
     }
     
+    debug2 "add_package shipper = " . $self->shipper;
+    
     my $package;
-    eval { $package  = Business::Shipping->_new_subclass( 'Package::'  . $self->shipper ); };
+    eval { $package  = Business::Shipping->_new_subclass( $self->shipper . '::Package' ); };
     logdie "Error when creating Package subclass: $@" if $@;
     logdie "package was undefined."  if not defined $package;
     

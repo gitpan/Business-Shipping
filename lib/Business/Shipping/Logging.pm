@@ -24,7 +24,7 @@ use Business::Shipping::KLogging;
 use Business::Shipping::Config;
 
 @EXPORT = Business::Shipping::KLogging::subs;
-$VERSION = do { my $r = q$Rev: 189 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 244 $; $r =~ /\d+/; $&; };
 
 foreach my $_sub ( Business::Shipping::KLogging::subs ) {
     eval "\*$_sub = \*Business::Shipping::KLogging::$_sub";
@@ -32,8 +32,7 @@ foreach my $_sub ( Business::Shipping::KLogging::subs ) {
 
 *trace    = *Business::Shipping::KLogging::debug;
 
-my $file         = Business::Shipping::Config::support_files()
-                 . '/config/log4perl.conf';
+my $file         = Business::Shipping::Config::config_dir . '/log4perl.conf';
 my $caller_depth = 2;
 
 bs_init();

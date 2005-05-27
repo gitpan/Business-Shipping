@@ -1,6 +1,6 @@
 # Business::Shipping::Tracking - Abstract class
 # 
-# $Id: Tracking.pm 193 2004-11-15 02:14:33Z db-ship $
+# $Id: Tracking.pm 214 2005-03-04 17:21:22Z db-ship $
 # 
 # Copyright (c) 2004 Infogears Inc.  All rights reserved.
 # Portions Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights 
@@ -44,7 +44,7 @@ Business::Tracking is an API for tracking shipments
 =cut
 
 
-$VERSION = do { my $r = q$Rev: 193 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 214 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -74,7 +74,7 @@ use Class::MethodMaker 2.0
                   'Optional' 
                 ],
       scalar => [ { -type => 'LWP::UserAgent',
-                    -default_ctor => 'new',
+                    -default_ctor => sub { LWP::UserAgent->new(); },
                   }, 'user_agent'
                 ],
       scalar => [ { -type => 'HTTP::Response',

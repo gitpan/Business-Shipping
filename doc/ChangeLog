@@ -1,7 +1,135 @@
 Revision history for Business::Shipping
 =======================================
 
-1.56  (In source repository)
+1.90  May 26 2005
+
+
+  General
+  
+    * Renamed go() to execute()
+    
+    * Support multiple packages
+      - Done for UPS_Offline
+      - Add test cases
+
+    * [Enh] Split overweight shipments into multiple packages 
+      - Instead of mulitple shipments.
+      - UPS allows each *package* in a shipment to be a max of 150 lbs.
+      - Divide overweight shipments into multiple virtual shipments
+      - Max weight per virtual shipment customizable
+      - Add test cases
+      - $shipment->max_weight() can be used to customize the maximum package 
+        weight for a given shipment. 
+      
+    * Moved a lot of files into doc/ so that the root directory would be a 
+      little cleaner.
+      
+    * Default config/log/data directory changed to /usr/local/B_Shipping
+
+    * [Fixed] Make test doesn't currently work because after installing 
+      DataFiles, the data/ directory is in one place, and the config/ directory
+      is in another.  However, the Config.pm module expects them all to be in 
+      one location.
+      - Solution: split out the directories so that they can be in separate 
+        places.
+
+  UPS_Offline
+
+    * [Enh] Major change: new data format for increased performance.
+      - Instead of parsing UPS files at run-time, all the data is parsed into
+        perl objects (like an in-memory database), and saved as Storable files. 
+      - Significant performance increase and code simplification.
+      - Reduces many required modules.
+  
+    * Add UPS Offline Hundredweight shipping
+      - Use cwt tables
+      - Requires overweight shipments to be split into multi-package, not
+        multi-shipment.
+      - Description of calculation:
+        Calculate price for entire shipment weight altogether (not per-package).
+      - Add a default safety padding.  If the weight is only x% higher than the
+        required limit for hundredweight shipping, then do not calculate as 
+	hundredweight (so that just in case the weights given to B::S are lower
+	than actual billiable weight, the shipper wont be stuck paying 50% 
+	higher fees).
+      - Currently uses Storable::nstore for compatibilty.
+      
+    * [Fixed] .this_is_data did not make it into the release
+      - Changed to this_is_the_data_dir
+
+  UPS_Online
+  
+    * Disabled.  See doc/UPS_Online_disabled.txt
+        
+
+1.57  (unreleased)
+
+
+  General
+  
+    * All significant changes and bugfixes in this version were completed 
+      by Rubenstein Technology Group:  
+      - Ed Zborowski <ed@rubensteintech.com> 
+      - Martin H. Beauchamp <martin@rubensteintech.com>
+      - Jaron Rubenstein <jaron@rubensteintech.com>
+    
+    * [Fixed] Class::MethodMaker 2.05 now works
+      - Different default_ctor() usage.
+      - Caused this error: "failure to initialize object with parameters: 
+        Odd number of arguments for new"
+    
+    * Changed how errors were handled.  Instead of just generating an 
+      message and exiting, the code now saves the error info to the object,
+      generates a message, and exits if the error was fatal enough.  More
+      than one error message is now stored.
+    
+    * [Fixed] Business::Shipping::Shipment was trying to load a package 
+      that did not exist.  
+      - Changed the package class from 
+        Business::Shipping::Shipment::<Shipper> to 
+        Business::Shipping::<Shipper>::Shipment.
+    
+    * [Fixed] Business::Shipping::UPS_Online::RateRequest could not generate
+      xml for more than one package.  
+      - Stored the packages in the hash as an array.  XML::Simple then 
+        converts the array into seperate Package elements.      
+    
+    * Store results using hash instead of a hash ref.
+
+    * Tests updated for all new code.
+    
+  Tracking
+  
+    * Made a lot of bugfixes and changes to get the UPS and USPS Tracking 
+      modules working.
+      
+  USPS_Online
+  
+    * Use version 2 of the protocol.
+    
+    * Changed USPS rate code so that it correctly parsed the response XML
+      and created a similar results data structure that UPS rate code 
+      creates.
+    
+    * Only pass machinable information if the user stated it.
+    
+    * Added shipper to foward array in RateRequest shipment method.
+
+    * [Fixed] Priority service always flat rate options.
+      - Caused by always passing 'container', which implies flat-rate.
+
+  UPS_Offline
+
+    * Fuel Surcharge updates  
+    
+  Usertag
+  
+    * Reduced some of the error messages 
+    
+    * Changed variable names from "BS" to "BSHIPPING".
+  
+      
+1.56  Jan 03 2005
 
 
   General
@@ -10,7 +138,7 @@ Revision history for Business::Shipping
     
     * [Enh] Minor documentation updates
 
-  Offline_UPS
+  UPS_Offline
   
     * [Enh] 2005 Zones and Rates supported.
       - UPS changed the file format

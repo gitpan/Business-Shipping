@@ -10,7 +10,7 @@ Business::Shipping::RateRequest - Abstract class
 
 =head1 VERSION
 
-$Rev: 198 $
+$Rev: 240 $
 
 =head1 DESCRIPTION
 
@@ -22,7 +22,7 @@ Represents a request for shipping cost estimation.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 198 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 240 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -71,6 +71,17 @@ See _handle_response() for implementation details.
 Stores a Business::Shipping::Shipment object.  Many methods are forwarded to it.
 At this time, each RateRequest only has one Shipment.
 
+=head2 $rate_request->error_details()
+
+Arrayref.  Stores the error results of a rate request. There can be multiple
+errors for one request.  Each entry in the array represents an error.  Each
+error is a hashref with the following keys:
+
+ error_code	: The error code
+ error_msg	: A description error message
+
+Additional keys may be added by the shipper class.
+
 =cut
 
 use Class::MethodMaker 2.0
@@ -110,20 +121,24 @@ use Class::MethodMaker 2.0
                   'Has_a' 
                 ],
       scalar => [ { -static => 1, -default => 'shipper' }, 'Required' ],
-      scalar => [ { -static => 1, -default => 'shipper' }, 'Unique'   ]
+      scalar => [ { -static => 1, -default => 'shipper' }, 'Unique'   ],
+      array  => [ 'error_details' ],
     ];
 
-=head2 $rate_request->go()
+=head2 $rate_request->execute()
 
-This method sets some values (optional), performs the request, then parses the
+This method sets some values (optional), executes the request, then parses the
 results.
 
 =cut
 
-sub go
+sub execute
 {
     my ( $self, %args ) = @_;
     #trace( "( " . uneval( %args ) . " )" );
+    
+    # Try to clear previous results, in case this object was reused.
+    $self->_total_charges( 0 );
     
     $self->init( %args ) if %args;
     $self->_massage_values();
@@ -149,13 +164,85 @@ sub go
         trace( 'cache disabled' );
     }
     
+    # Estimate shipping for overweight shipments by dividing them into 
+    # multiple shipments and sending multiple requests.
+    # Lets not assume that every module can do it, though.
+    my $handle_response_success;
+    my $max_weight_per_package;
+    $max_weight_per_package = $self->shipment->max_weight if $self->shipment->can( 'max_weight' );
+    $max_weight_per_package ||= 150;
+    
+    #debug3 "before we start, all packages = " . Dumper( $self->shipment->packages );
+    foreach my $p_idx ( 0 .. @{ $self->shipment->packages } - 1 ) {
+        my $package = $self->shipment->packages_index( $p_idx );
+        
+        if ( ! $package->weight ) {
+            error "package weight not found for package idx: $p_idx"; #, object = " . Dumper( $package );
+            next;
+        }
+        
+        my $original_weight = $package->weight;
+        
+        if ( $max_weight_per_package and ( $original_weight > $max_weight_per_package ) ) {
+            debug 'calculating multiple shipments due to overweight...';
+            debug "original weight: $original_weight, max_weight_per_package: $max_weight_per_package";
+            
+            my $MAX_NUM_PACKAGES = 10;
+            
+            my $number_of_packages = $original_weight / $max_weight_per_package;
+            if ( $number_of_packages != int $number_of_packages ) {
+                # 1 for the remainder, this will be the usual case
+                $number_of_packages = int $number_of_packages + 1; 
+            }
+            
+            debug 'number of packages = ' . $number_of_packages;
+            
+            if ( $number_of_packages > $MAX_NUM_PACKAGES ) {
+                $self->user_error( "Too heavy." );
+                return $self->is_success( 0 );
+            }
+            
+            
+            
+            # Set the current violating package to the maximum amount, then add packages until the remaining
+            # amount runs out.
+            
+            my $running_weight = $original_weight;
+            my $running_total_cost;
+            my $sum_rate = 0;
+            my $last_charges = 0;
+            
+            
+            $self->shipment->packages_index( $p_idx )->weight( $max_weight_per_package );
+            $running_weight -= $max_weight_per_package;
+            
+            for ( my $c = 1; $c <= $number_of_packages; $c++ ) {
+                debug "splitting out package #$c";
+                
+                my $current_weight = $running_weight > $max_weight_per_package ? 
+                    $max_weight_per_package # Common path
+                    :
+                    $running_weight; # Last shipment, unless it divided evenly.
+                    
+                $running_weight -= $current_weight;
+                debug "setting weight to $current_weight";
+                last if $current_weight <= 0;
+               
+                $self->shipment->add_package( weight => $current_weight );
+            }
+            use Data::Dumper;
+            debug "done handling overweight.  shipment now: " . Dumper( $self->shipment );
+        }
+    }
+    
     $self->perform_action();
+    $handle_response_success = $self->_handle_response();
     
     my $results = $self->results();
     debug 'results = ' . Dumper( $results );
     
     # Only cache if there weren't any errors.
-    if ( $self->_handle_response() and $self->cache() ) {    
+    if ( $handle_response_success and $self->cache() ) {    
         trace( 'cache enabled, saving results.' );
         #
         # TODO: Allow setting of cache properties (time limit, enable/disable, etc.)
@@ -172,16 +259,10 @@ sub go
     return $self->is_success();
 }
 
+# COMPAT: submit() go()
 
-# COMPAT: submit()
-
-=head2 $rate_request->submit()
-
-For backwards compatibility.
-
-=cut
-
-*submit = *go;
+*submit = *execute;
+*go     = *execute;
 
 =head2 $rate_request->validate()
 
@@ -355,6 +436,9 @@ sub rate
     
     foreach my $shipper ( @{ $self->results } ) {
         # Just return the amount for the first one.
+        
+        return $shipper->{ rates }->[ 0 ]->{ split_shipment_sum_rate } 
+            if $shipper->{ rates }->[ 0 ]->{ split_shipment_sum_rate };
         return $shipper->{ rates }->[ 0 ]->{ charges };
     }
     
@@ -451,7 +535,7 @@ For backwards compatibility.
 
 =cut
 
-*get_total_price = *total_charges;
+*get_total_price = *rate;
 *total_charges = *rate;
 
 1;

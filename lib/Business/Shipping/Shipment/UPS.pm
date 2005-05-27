@@ -6,13 +6,13 @@ Business::Shipping::Shipment::UPS
 
 =head1 VERSION
 
-$Rev: 194 $
+$Rev: 240 $
 
 =head1 METHODS
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 194 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 240 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -48,7 +48,7 @@ use Class::MethodMaker 2.0
 =cut
 
 sub packaging { shift->package0->packaging( @_ ) }
-sub weight    { shift->package0->weight( @_ )    }
+#sub weight    { shift->package0->weight( @_ )    }  # UPS uses the Shipping::Shipment::weight() method.
 
 =head2 massage_values()
 

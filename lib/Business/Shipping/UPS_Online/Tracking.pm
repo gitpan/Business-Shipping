@@ -1,13 +1,17 @@
+package Business::Shipping::Tracking::UPS;
+
+use constant UPS_ONLINE_DISABLED => '1';
+#use constant UPS_ONLINE_DISABLED => '~_~UPS_ONLINE_DISABLED~_~';
+
 # Business::Shipping::UPS_Online::Tracking - Abstract class for tracking shipments
 # 
-# $Id: Tracking.pm 190 2004-09-19 04:29:09Z db-ship $
+# $Id: Tracking.pm 244 2005-05-27 03:41:32Z db-ship $
 # 
 # Copyright (c) 2004 InfoGears Inc.  All Rights Reserved.
 # Portions Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved. 
 # 
 # This program is free software; you may redistribute it and/or modify it under
 # the same terms as Perl itself. See LICENSE for more info.
-# 
 
 =head1 NAME
 
@@ -82,9 +86,7 @@ the same terms as Perl itself. See LICENSE for more info.
 
 =cut
 
-package Business::Shipping::Tracking::UPS;
-
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 244 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -99,6 +101,7 @@ use Clone;
 use Class::MethodMaker 2.0
     [ 
       new    => [qw/ -hash new / ],
+      scalar => [ 'access_key' ], 
       scalar => [ { -static => 1, -default => 'user_id, password, access_key' }, 'Required' ],
       scalar => [ { -static => 1, -default => 'prod_url, test_url' }, 'Optional' ],
       #
@@ -173,14 +176,16 @@ sub _gen_single_package_xml {
   my $request_xml =  $access_xml . '<?xml version="1.0"?>' . "\n"
     . XML::Simple::XMLout( $request_tree, KeepRoot => 1 );
     
-  
+
   # We only do this to provide a pretty, formatted XML doc for the debug. 
-  my $request_xml_tree = XML::Simple::XMLin( $request_xml, KeepRoot => 1, ForceArray => 1 );
+  # Commented out lines below, because XML::Parser complains 
+  #my $request_xml_tree = XML::Simple::XMLin( $request_xml, KeepRoot => 1, ForceArray => 1 );
+
   
   #
   # Large debug
   #
-  debug3( XML::Simple::XMLout( $request_xml_tree, KeepRoot => 1 ) );
+  #debug3( XML::Simple::XMLout( $request_xml_tree, KeepRoot => 1 ) );
   #
 
   return ($request_xml);
@@ -321,8 +326,9 @@ sub _handle_response
     $result_hash->{activity} = [];
 
     my $package = $response_tree->{Shipment}->{Package};    
+    my $activities = (ref $package->{Activity} eq 'ARRAY') ? $package->{Activity} : [ $package->{Activity} ];
     
-    foreach my $activity (@{$package->{Activity}}) {
+    foreach my $activity (@$activities) {
       my $activity_info = {
                    address => {
                        city => $activity->{ActivityLocation}->{Address}->{City},
@@ -351,7 +357,11 @@ sub _handle_response
 
     Business::Shipping::Tracking::_delete_undefined_keys($result_hash);
 
-    $self->results({$shipment_id => $result_hash});                     
+    $self->results($shipment_id => $result_hash);
+    
+    if ( UPS_ONLINE_DISABLED ) {
+        die "Support for UPS_Online has been disabled, see doc/UPS_Online_disabled.txt";
+    }
 
     trace 'returning success';
     return $self->is_success( 1 );

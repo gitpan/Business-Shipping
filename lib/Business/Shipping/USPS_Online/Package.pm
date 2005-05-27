@@ -6,13 +6,13 @@ Business::Shipping::USPS_Online::Package
 
 =head1 VERSION
 
-$Rev: 190 $
+$Rev: 221 $
 
 =head1 METHODS
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 221 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -46,9 +46,10 @@ Default 'Package'.
 use Class::MethodMaker 2.0
     [
       new    => [ { -hash => 1 }, 'new' ],
-      scalar => [ { -default => 'None'    }, 'container'  ],
+      new    => 'default_new',
+      scalar => [ { -default => undef     }, 'container'  ],
       scalar => [ { -default => 'Regular' }, 'size'       ],
-      scalar => [ { -default => 'False'   }, 'machinable' ],
+      scalar => [ { -default => undef     }, 'machinable' ],
       scalar => [ { -default => 'Package' }, 'mail_type'  ],
       scalar => [ { -default => '0.00'    }, 'ounces'     ],
       scalar => [ { -default => '0.00'    }, 'pounds'     ],
