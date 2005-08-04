@@ -6,7 +6,7 @@ Business::Shipping::Config - Configuration functions
 
 =head1 VERSION
 
-$Rev: 244 $
+$Rev: 257 $
 
 =head1 DESCRIPTION
 
@@ -24,7 +24,7 @@ use constant DEFAULT_DATA_DIR => '/usr/local/B_Shipping/data';
 #use constant DEFAULT_DATA_DIR => '~_~DEFAULT_DATA_DIR~_~';
 
 
-$VERSION = do { my $r = q$Rev: 244 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 257 $; $r =~ /\d+/; $&; };
 @EXPORT = qw/ cfg cfg_obj config_to_hash config_to_ary_of_hashes /;
 
 use strict;
@@ -33,6 +33,7 @@ use base ( 'Exporter' );
 use Config::IniFiles;
 use Business::Shipping::Logging;
 use Carp;
+use Cwd;
 
 $Business::Shipping::Config::config_dir = '';
 $Business::Shipping::Config::data_dir = '';
@@ -63,8 +64,9 @@ $Business::Shipping::Config::config_dir ||= $ENV{ B_SHIPPING_CONFIG_DIR };
 $Business::Shipping::Config::data_dir   ||= DEFAULT_DATA_DIR;
 $Business::Shipping::Config::config_dir ||= DEFAULT_CONFIG_DIR;
 
-die "Config dir could not be found." if ( ! -d $Business::Shipping::Config::config_dir );
-die "Data dir could not be found." if ( ! -d $Business::Shipping::Config::config_dir );
+my $cwd = Cwd::getcwd;
+die "Config dir could not be found.  Current working dir: $cwd." if ( ! -d $Business::Shipping::Config::config_dir );
+die "Data dir could not be found.  Current working dir: $cwd." if ( ! -d $Business::Shipping::Config::config_dir );
 
 $Business::Shipping::Config::main_config_file = "$Business::Shipping::Config::config_dir/config.ini";
 

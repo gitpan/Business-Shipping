@@ -1,6 +1,6 @@
 package Business::Shipping::UPS_Online::RateRequest;
 
-use constant UPS_ONLINE_DISABLED => '1';
+use constant UPS_ONLINE_DISABLED => '0';
 #use constant UPS_ONLINE_DISABLED => '~_~UPS_ONLINE_DISABLED~_~';
 
 =head1 NAME
@@ -9,11 +9,11 @@ Business::Shipping::UPS_Online::RateRequest
 
 =head1 VERSION
 
-Version $Rev: 240 $
+Version $Rev: 280 $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 240 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
 
 =head1 REQUIRED FIELDS
 
@@ -77,6 +77,9 @@ UPS_ACCESS_KEY
     event_handlers
     from_city
     to_city
+    signature_type
+    insured_currency_type
+    insured_value
 
 =head1 METHODS
 
@@ -109,8 +112,6 @@ use Class::MethodMaker 2.0
     [
       new => [ qw/ -hash new / ], 
       scalar => [ 'access_key' ], 
-      scalar => [ { -static => 1,  -default => 'access_key' },  'Required' ], 
-      scalar => [ { -static => 1,  -default => 'test_server,  no_ssl,  to_city' },  'Optional' ], 
       scalar => [ { -default => 'https://www.ups.com/ups.app/xml/Rate' },  'prod_url' ], 
       scalar => [ { -default => 'https://wwwcie.ups.com/ups.app/xml/Rate' },  'test_url' ],       
       scalar => [ { -type    => 'Business::Shipping::UPS_Online::Shipment', 
@@ -137,17 +138,20 @@ use Class::MethodMaker 2.0
                                   'packaging', 
                                   'to_residential',
                                   'cod', 'cod_funds_code', 'cod_value',
+                                  'signature_type',
+                                  'insured_currency_type', 'insured_value',
                                 ], 
                    }, 
                    'shipment'
                  ], 
-      scalar => [ { -static => 1,  
-                    -default => "shipment=>Business::Shipping::UPS_Online::Shipment" 
-                  },  
-                  'Has_a' 
-               ], 
     ];
 
+sub Required { return ( $_[ 0 ]->SUPER::Required, qw/ access_key / ); }
+sub Optional { return ( $_[ 0 ]->SUPER::Optional, qw/ test_server no_ssl to_city packaging signature_type 
+                                                      insured_currency_type insured_value / ); }
+sub Unique   { return ( $_[ 0 ]->SUPER::Unique,   qw/ packaging / ); }    
+
+    
 =head2 from_state()
 
 Ignored.  For compatibility with UPS_Offline only.
@@ -270,6 +274,32 @@ sub _gen_request_xml
             );
         }
         
+        ### If signature_type was defined and origin = dest = US
+        if( defined($package->signature_type()) && 
+            (!defined($self->to_country_abbrev()) || $self->to_country_abbrev() eq 'US') &&
+            (!defined($self->from_country_abbrev()) || $self->from_country_abbrev() eq 'US') )
+        {
+            if( !exists($package_service_options{PackageServiceOptions}) )
+            {
+                $package_service_options{PackageServiceOptions} = [ { } ];
+            }
+            
+            $package_service_options{PackageServiceOptions}[0]{DeliveryConfirmation} =  [ { DCISType => [ $package->signature_type() ] } ];
+        } # if signature
+        
+        ### If insured_value was defined
+        if( defined($package->insured_value()) )
+        {
+            if( !exists($package_service_options{PackageServiceOptions}) )
+            {
+                $package_service_options{PackageServiceOptions} = [ { } ];
+            }
+            
+            my $currCode = (defined($package->insured_currency_type())) ? $package->insured_currency_type() : 'USD';
+            $package_service_options{PackageServiceOptions}[0]{InsuredValue} =  [ { CurrencyCode => [ $currCode ],
+                                                                                    MonetaryValue => [ $package->insured_value() ], } ];
+        } # if signature
+        
         push( @packages, {
 
                 'PackagingType' => [ {
@@ -317,22 +347,6 @@ sub _gen_request_xml
     debug3( $request_xml );
     
     return ( $request_xml );
-}
-
-=head2 get_total_charges()
-
-Returns the total charges.
-
-=cut
-
-#
-# TODO: redundant?
-#
-sub get_total_charges
-{
-    my ( $self ) = shift;
-    return $self->{'total_charges'} if $self->{'total_charges'};
-    return 0;
 }
 
 =head2 _handle_response
@@ -458,7 +472,7 @@ sub _handle_response
     }
     
     use Data::Dumper;
-    debug "ups_results = " . Dumper( $ups_results ); 
+    debug2 "ups_results = " . Dumper( $ups_results ); 
     foreach my $ups_rate_info ( @$ups_results ) {
         
         my $service_code = $ups_rate_info->{ Service }->{ Code };

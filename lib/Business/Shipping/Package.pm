@@ -1,6 +1,6 @@
 # Business::Shipping::Package - Abstract class
 # 
-# $Id: Package.pm 190 2004-09-19 04:29:09Z db-ship $
+# $Id: Package.pm 280 2005-08-03 06:03:48Z db-ship $
 # 
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -15,7 +15,7 @@ Business::Shipping::Package - Abstract class
 
 =head1 VERSION
 
-$Rev: 190 $
+$Rev: 280 $
 
 =head1 DESCRIPTION
 
@@ -26,7 +26,7 @@ implementation.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 190 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -46,9 +46,6 @@ use Class::MethodMaker 2.0
     [ 
       new    => [ qw/ -hash new / ],
       scalar => [ 'weight', 'id', 'charges' ],
-      scalar => [ { -static => 1, -default => ''            }, 'Required' ],
-      scalar => [ { -static => 1, -default => 'id, charges' }, 'Optional' ],
-      scalar => [ { -static => 1, -default => 'weight'      }, 'Unique'   ]
     ];
 
 1;

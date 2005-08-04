@@ -6,11 +6,11 @@ Business::Shipping::Shipment - Abstract class
 
 =head1 VERSION
 
-$Rev: 240 $
+$Rev: 280 $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 240 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
 
 =head1 DESCRIPTION
 
@@ -50,19 +50,8 @@ use Business::Shipping::Util;
 use Class::MethodMaker 2.0
     [
       new    => [ { -hash => 1 }, 'new' ],
-      scalar => [ qw/current_package_index from_zip from_city to_zip to_city shipment_num/ ],
+      scalar => [ qw/ current_package_index from_zip from_city to_zip to_city shipment_num / ],
       array  => [ { -type => 'Business::Shipping::Package' }, 'packages' ],
-      scalar => [ { -static => 1, -default => 'packages=>Business::Shipping::Package' }, 'Has_a' ],
-      scalar => [ { -static => 1, 
-                    -default => 'from_country, to_country, to_zip, from_city, to_city' 
-                  },
-                  'Optional' 
-                ],
-      scalar => [ { -static => 1, 
-                    -default => 'service, from_zip, from_country, to_zip, from_city, to_city, weight' 
-                  },
-                  'Unique' 
-                ]
     ];
 
 =head2 weight

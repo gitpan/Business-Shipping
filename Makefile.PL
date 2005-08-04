@@ -60,7 +60,8 @@ WriteMakefile(
     },
     EXE_FILES       => [
         'bin/Business-Shipping-UPS_Offline-update-fuel-surcharge.pl',
-    ]
+    ],
+    NO_META         => 1,
 );
 
 # Override the standard "install" target, so that it calls "support_files_install"
@@ -84,7 +85,7 @@ sub MY::postamble {
 	return qq{
 docs :
 	find lib -name '*.pm' -or -name '*.pod' -exec podchecker -nowarnings {} \\;
-	pod2text doc/INSTALL.pod > doc/INSTALL
+	pod2text doc/INSTALL.pod > INSTALL
 	pod2html doc/INSTALL.pod > doc/INSTALL.html
 	pod2text doc/INSTALL.pod > doc/INSTALL.txt
 	pod2text lib/Business/Shipping.pm > README

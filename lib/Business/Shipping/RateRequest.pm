@@ -10,7 +10,7 @@ Business::Shipping::RateRequest - Abstract class
 
 =head1 VERSION
 
-$Rev: 240 $
+$Rev: 280 $
 
 =head1 DESCRIPTION
 
@@ -22,7 +22,7 @@ Represents a request for shipping cost estimation.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 240 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -115,16 +115,15 @@ use Class::MethodMaker 2.0
                    },
                    'shipment'
                  ],
-      scalar => [ { -static => 1, 
-                    -default => "shipment=>Business::Shipping::Shipment" 
-                  }, 
-                  'Has_a' 
-                ],
-      scalar => [ { -static => 1, -default => 'shipper' }, 'Required' ],
-      scalar => [ { -static => 1, -default => 'shipper' }, 'Unique'   ],
       array  => [ 'error_details' ],
     ];
 
+sub Required { return ( $_[ 0 ]->SUPER::Required, qw/ shipper weight / ); } # weight can be required even though some use pounds.
+sub Optional { return ( $_[ 0 ]->SUPER::Optional, qw/ to_residential from_country to_country to_zip from_city
+                                                      to_city        / ); }
+sub Unique   { return ( $_[ 0 ]->SUPER::Unique,   qw/ shipper service from_zip from_country to_zip from_city
+                                                      to_city weight / ); }    
+    
 =head2 $rate_request->execute()
 
 This method sets some values (optional), executes the request, then parses the
@@ -239,10 +238,11 @@ sub execute
     $handle_response_success = $self->_handle_response();
     
     my $results = $self->results();
-    debug 'results = ' . Dumper( $results );
+    debug2 'results = ' . Dumper( $results );
     
-    # Only cache if there weren't any errors.
-    if ( $handle_response_success and $self->cache() ) {    
+    # Only cache if there weren't any errors and we only have one package.  The Unique() subs are not
+    # built (currently) to generate cache keys for multiple packages.  It's all done at the shipment level.
+    if ( $handle_response_success and $self->cache() and @{ $self->shipment->packages } == 1 ) {    
         trace( 'cache enabled, saving results.' );
         #
         # TODO: Allow setting of cache properties (time limit, enable/disable, etc.)
@@ -436,10 +436,9 @@ sub rate
     
     foreach my $shipper ( @{ $self->results } ) {
         # Just return the amount for the first one.
-        
+        #debug "Shipper: $shipper\n";
         return $shipper->{ rates }->[ 0 ]->{ split_shipment_sum_rate } 
-            if $shipper->{ rates }->[ 0 ]->{ split_shipment_sum_rate };
-        return $shipper->{ rates }->[ 0 ]->{ charges };
+            || $shipper->{ rates }->[ 0 ]->{ charges };
     }
     
     return;
@@ -522,21 +521,13 @@ sub display_price_components
     return;
 }
 
+# COMPAT: get_total_charges()
 # COMPAT: get_total_price()
 # COMPAT: total_charges()
 
-=head2 $rate_request->get_total_price()
-
-For backwards compatibility.
-
-=head2 $rate_request->total_charges()
-
-For backwards compatibility.
-
-=cut
-
-*get_total_price = *rate;
-*total_charges = *rate;
+*get_total_charges = *rate;
+*get_total_price   = *rate;
+*total_charges     = *rate;
 
 1;
 

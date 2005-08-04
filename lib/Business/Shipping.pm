@@ -1,6 +1,6 @@
 # Business::Shipping - Rates and tracking for UPS and USPS
 #
-# $Id: Shipping.pm 244 2005-05-27 03:41:32Z db-ship $
+# $Id: Shipping.pm 280 2005-08-03 06:03:48Z db-ship $
 #
 # Copyright (c) 2003-2005 Daniel Browning <db@kavod.com>. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -14,11 +14,11 @@ Business::Shipping - Rates and tracking for UPS and USPS
 
 =head1 VERSION
 
-Version 1.90
+Version 1.92
 
 =cut
 
-$VERSION = '1.90';
+$VERSION = '1.92';
 
 =head1 SYNOPSIS
 
@@ -156,12 +156,10 @@ provider that you will use.
 No signup required.  C<Business::Shipping::DataFiles> has all of rate tables, 
 which are usually updated only once per year.
 
-We recommend that you run the following program to update your fuel surcharge
+We recommend that you run the following script to update your fuel surcharge
 every first monday of the month.
 
- Business-Shipping-UPS_Offline-update-fuel-surcharge.pl
-
-See bin/Business-Shipping-UPS_Offline-update-fuel-surcharge.pl
+ bin/Business-Shipping-UPS_Offline-update-fuel-surcharge.pl
 
 =head2 UPS_Online: For United Parcel Service (UPS) Online XML: Free signup
 
@@ -240,12 +238,11 @@ use warnings;
 use Carp;
 use Business::Shipping::Logging;
 use Business::Shipping::Util 'unique';
-use Business::Shipping::ClassAttribs;
+#use Business::Shipping::ClassAttribs;
 use Class::MethodMaker 2.0
     [ 
       new    => [ qw/ -hash new /                                     ],
       scalar => [ 'tx_type', 'shipper', '_user_error_msg'             ],
-      scalar => [ { -static => 1, -default => 'tx_type' }, 'Optional' ],
     ];
 
 $Business::Shipping::RuntimeLoad = 1;
@@ -390,6 +387,24 @@ sub validate
     else {
         return 1;
     }
+}
+
+=head2 $self->get_grouped_attrs( $attribute_name )
+
+=cut
+
+sub get_grouped_attrs
+{
+    my ( $self, $attr_name ) = @_;
+    
+    # attr_name = Attribute Name.
+    
+    my @results = $self->$attr_name();
+    
+    #debug "get_grouped_attrs: " . join( ', ', @results );
+    print "get_grouped_attrs( $attr_name ): " . join( ', ', @results ) . "\n";
+    
+    return @results;
 }
 
 =head2 $obj->rate_request()
@@ -557,6 +572,10 @@ sub event_handlers
     
     return;
 }
+
+sub Optional { return qw/ tx_type /; }
+sub Required { return (); }
+sub Unique   { return (); }
 
 1;
 

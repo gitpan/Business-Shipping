@@ -1,15 +1,6 @@
-# Copyright (c) 2003 Interchange Development Group
-# Copyright (c) 2003, 2004 Kavod Technologies, Dan Browning. 
-#
-# All rights reserved. 
-# 
 # Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
 # the same terms as Perl itself. See LICENSE for more info.
-#
-# Portions based on the corresponding work in the Interchange project, which 
-# was written by Mike Heins <mike@perusion.com>.  See http://www.icdevgroup.org
-# for more info.
 
 package Business::Shipping::UPS_Offline::RateRequest;
 
@@ -19,7 +10,7 @@ Business::Shipping::UPS_Offline::RateRequest
 
 =head1 VERSION
 
-$Rev: 244 $
+$Rev: 280 $
 
 =head1 GLOSSARY
 
@@ -35,7 +26,7 @@ $Rev: 244 $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 244 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -134,16 +125,38 @@ use Class::MethodMaker 2.0
                    },
                    'shipment'
                  ],
-      scalar => [ { -static => 1, 
-                    -default => "shipment=>Business::Shipping::Shipment::UPS" 
-                  }, 
-                  'Has_a' 
-               ],
-      scalar => [ { -static => 1, -default => 'zone_file, zone_name' }, 'Optional' ],
       scalar => [ { -static => 1 }, 'Zones' ], # Zones is depreciated, remove it.
       scalar => [ { -static => 1, -default => {} }, 'Data' ],
     ];
 
+=item * Required()
+
+from_state only required for Offline international orders.
+
+=cut
+
+sub Required
+{
+    my ( $self ) = @_;
+    
+    my @required;
+    
+    if ( $self->to_canada ) {
+        @required = qw/ service from_state          /;
+    }
+    elsif ( $self->intl ) {
+        @required = qw/ service from_zip from_state /;
+    }
+    else {
+        @required = qw/ service from_zip            /;
+    }
+    
+    return ( $self->SUPER::Required, @required );
+}
+
+sub Optional { return ( $_[ 0 ]->SUPER::Optional, qw/ to_residential / ); }
+sub Unique   { return ( $_[ 0 ]->SUPER::Unique,   qw/ to_residential / ); }
+    
 sub to_residential { return shift->shipment->to_residential( @_ ); }
 sub is_from_east_coast { return not shift->is_from_west_coast(); }
 
@@ -335,9 +348,27 @@ sub calc_delivery_area_surcharge
 {
     my ( $self ) = @_;
     
+    # Does not apply to hundredweight service.
+    return 0.00 if ( $self->service_name eq 'Ground Hundredweight Service' );
+    
     if ( $self->domestic ) {
-        return 1.75 if $self->to_residential;
-        return 1.00;
+        my $table = 'xarea';
+        $self->load_table( $table );
+        my $zip_codes = $self->Data->{ $table }->{ table };
+        
+        my $is_das;
+        my $to_zip = $self->to_zip;
+        foreach my $das_zip ( @$zip_codes ) {
+            $is_das = 1 if $das_zip == $to_zip;
+        }
+        if ( $is_das ) {
+            if ( $self->to_residential ) {
+                return cfg()->{ ups_das }->{ domestic_res } || 2.00;
+            }
+            else {
+                return cfg()->{ ups_das }->{ domestic_com } || 1.25;
+            }
+        }
     }
     
     return 0.00;
@@ -399,15 +430,17 @@ sub calc_fuel_surcharge
     #/;
     #return 0 if grep /$ups_service_name/i, @exempt_services;
     
-    my @ground_services = qw/
-        Ground Commercial
-        Ground Residential
-        Ground Hundredweight Service
-        Standard
-    /;
-    my $is_ground_svc = 0;
-    $is_ground_svc = 1 if grep /$ups_service_name/i, @ground_services;
+    my @ground_services = (
+        'Ground Commercial',
+        'Ground Residential',
+        'Ground Hundredweight Service',
+        'Standard',
+    );
     
+    debug "ups_service_name = '$ups_service_name'";
+    my $is_ground_svc = 0;
+    $is_ground_svc = 1 if grep /${ups_service_name}/i, @ground_services;
+    debug "is_ground_svc = $is_ground_svc";
     my $fuel_surcharge_filename = Business::Shipping::Config::config_dir . '/fuel_surcharge.txt';
     
     my $fuel_surcharge_contents = readfile( $fuel_surcharge_filename );
@@ -544,7 +577,7 @@ sub load_table
         if ( ! -f $filename ) {
             return error "file does not exist: $filename";
         }
-        $self->Data->{ $table } = retrieve( $filename );
+        $self->Data->{ $table } = Storable::retrieve( $filename );
     }
 
     return;
@@ -620,13 +653,15 @@ sub calc_zone
 
         # Note that here we use less than or equal to instead of just less than.
         if ( 
-             ( $self->shipment->domestic_or_ca and $key ge $min and $key le $max )
+             ( $self->shipment->domestic  and $key >= $min and $key <= $max )
              or
-             ( $self->shipment->intl and lc $key eq lc $min )
+             ( $self->shipment->to_canada and $key ge $min and $key le $max )
+             or
+             ( $self->shipment->intl       and lc $key eq lc $min )
            )
         {
-
             debug "found zone record:" . join( ', ', @$record );
+            #debug "(key = $key, min = $min, max = $max)";
             #my $col_num = $col_idx{ $self->service_nick2 } or do {
             #    error "Could not find the column ($self->service_nick2) in the column list: " 
             #        . join( ', ', @$cols );
@@ -740,7 +775,7 @@ sub calc_cost
             
             $cost = $self->get_cost( $table, $self->zone, $weight );
             
-            $running_sum_cost += $cost;
+            $running_sum_cost += $cost if $cost;
         }
         $cost = $running_sum_cost;
     }
@@ -844,11 +879,11 @@ sub binary_numeric
             # Too high, try lower
             $high = $cur;
         }
-        elsif ( $target >= $max ) {
+        elsif ( $target > $max ) {
             # Too low, try higher
             $low  = $cur + 1;
         }
-        elsif ( $target >= $min and $target < $max ) {
+        elsif ( $target >= $min and $target <= $max ) {
             # Just right.  Return matching row.
             return $row;
         }

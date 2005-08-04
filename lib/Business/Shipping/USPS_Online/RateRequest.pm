@@ -4,7 +4,7 @@ Business::Shipping::USPS_Online::RateRequest
 
 =head1 VERSION
 
-$Rev: 221 $
+$Rev: 280 $
 
 =head1 SERVICE TYPES
 
@@ -37,7 +37,7 @@ $Rev: 221 $
 
 package Business::Shipping::USPS_Online::RateRequest;
 
-$VERSION = do { my $r = q$Rev: 221 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -78,14 +78,49 @@ use Class::MethodMaker 2.0
                    },
                    'shipment'
                  ],
-      scalar => [ { -static => 1, 
-                    -default => "shipment=>Business::Shipping::USPS_Online::Shipment" 
-                  }, 
-                  'Has_a' 
-               ],
-      scalar => [ { -static => 1, -default => 'zone_file, zone_name' }, 'Optional' ],
-      scalar => [ { -static => 1 }, 'Zones' ],      
     ];
+
+=head2 Required()
+
+International USPS does not require the service or from_zip parameters, but 
+domestic does. 
+
+We use a hand-written "Required()" method for this class, because we require one
+of the following: pounds, ounces, or weight.  It doesn't matter which one it is,
+but if none of them are defined, then we pick 'weight' to Require.
+
+=cut
+
+
+sub Required
+{
+    my ( $self ) = @_;
+    
+    my @required;
+    
+    if ( $self->domestic ) {
+        @required = qw/ service from_zip /;
+    }
+    else {
+        @required = ();
+    }
+    
+    my $need_weight = 1;
+    for ( qw/ weight pounds ounces / ) {
+        if ( $self->$_ ) {
+            $need_weight = 0;
+        }
+    }
+    push @required, 'weight' if $need_weight;
+    
+    return ( $self->SUPER::Required, @required );
+}
+
+sub Optional { return ( $_[ 0 ]->SUPER::Optional, qw/ container size machinable mail_type pounds ounces / ); }
+# Note that we use 'weight' as the unique value (specified in Parent), 
+# which should convert automatically from pounds/ounces during uniqueness
+# calculations.
+sub Unique   { return ( $_[ 0 ]->SUPER::Unique,   qw/ container size machinable mail_type / ); }    
 
 =head2 _gen_request_xml
 
@@ -356,6 +391,36 @@ sub _handle_response
             push( @services_results, $service_hash );
             }
         }
+    }
+    elsif( defined($self->service()) && lc($self->service()) eq 'all' )
+    {
+        #
+        # International *does* tell you the price of all services for each package
+        # If caller asked for All services, then lets give them All services.  Will
+        # pass back service name as-is.  Let caller try to distinguish it.
+        #
+
+        # Set charges to returned services, since charges needs to be set to something
+        $charges = $response_tree->{ IntlRateResponse }->{ Package }->{ Service };
+        
+        if( defined($charges) )
+        {
+            $charges = [ $charges ] if( ref $charges ne 'ARRAY' );
+            foreach my $service ( @$charges )
+            {
+                my $service_hash = {
+                    code       => undef,
+                    nick       => undef,
+                    name       => $service->{ SvcDescription },
+                    deliv_days => undef,
+                    deliv_date => undef,
+                    charges    => $service->{ Postage },
+                    charges_formatted    => Business::Shipping::Util::currency( {}, $service->{ Postage }, ),
+                    deliv_date_formatted => undef,
+                };
+                push( @services_results, $service_hash );
+            } # foreach service
+        } # if services defined
     }
     else {
         #

@@ -6,13 +6,13 @@ Business::Shipping::Shipment::UPS
 
 =head1 VERSION
 
-$Rev: 240 $
+$Rev: 280 $
 
 =head1 METHODS
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 240 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -34,21 +34,27 @@ use Class::MethodMaker 2.0
       # We need this offline boolean to know if from_state is required.
 
       scalar => [ 'offline' ],
-      scalar => [ { -static => 1, -default => 'to_residential' }, 'Optional' ],
-      scalar => [ { -static => 1, -default => 'to_residential' }, 'Unique' ],
       array  => [ { -type => 'Business::Shipping::Package', 
                     -default_ctor => 'new' }, 'packages' ],      
-      scalar => [ { -static => 1, -default => 'packages=>Business::Shipping::Package' }, 'Has_a' ],
     ];
 
 =head2 packaging()
 
 =head2 weight()
 
+=head2 signature_type()
+
+=head2 insured_currency_type()
+
+=head2 insured_value()
+
 =cut
 
 sub packaging { shift->package0->packaging( @_ ) }
 #sub weight    { shift->package0->weight( @_ )    }  # UPS uses the Shipping::Shipment::weight() method.
+sub signature_type { shift->package0->signature_type( @_ ) }
+sub insured_currency_type { shift->package0->insured_currency_type( @_ ) }
+sub insured_value { shift->package0->insured_value( @_ ) }
 
 =head2 massage_values()
 
