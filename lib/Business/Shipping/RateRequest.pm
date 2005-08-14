@@ -10,7 +10,7 @@ Business::Shipping::RateRequest - Abstract class
 
 =head1 VERSION
 
-$Rev: 280 $
+$Rev: 287 $
 
 =head1 DESCRIPTION
 
@@ -22,7 +22,7 @@ Represents a request for shipping cost estimation.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 287 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -229,8 +229,10 @@ sub execute
                
                 $self->shipment->add_package( weight => $current_weight );
             }
-            use Data::Dumper;
-            debug "done handling overweight.  shipment now: " . Dumper( $self->shipment );
+            
+            debug "done handling overweight.";
+            #use Data::Dumper;
+            #debug2 "shipment now: " . Dumper( $self->shipment );
         }
     }
     

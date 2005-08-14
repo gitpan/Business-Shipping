@@ -1,6 +1,6 @@
 # Business::Shipping - Rates and tracking for UPS and USPS
 #
-# $Id: Shipping.pm 280 2005-08-03 06:03:48Z db-ship $
+# $Id: Shipping.pm 288 2005-08-14 16:51:27Z db-ship $
 #
 # Copyright (c) 2003-2005 Daniel Browning <db@kavod.com>. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -14,11 +14,11 @@ Business::Shipping - Rates and tracking for UPS and USPS
 
 =head1 VERSION
 
-Version 1.92
+Version 2.00
 
 =cut
 
-$VERSION = '1.92';
+$VERSION = '2.00';
 
 =head1 SYNOPSIS
 
@@ -401,8 +401,7 @@ sub get_grouped_attrs
     
     my @results = $self->$attr_name();
     
-    #debug "get_grouped_attrs: " . join( ', ', @results );
-    print "get_grouped_attrs( $attr_name ): " . join( ', ', @results ) . "\n";
+    #print "get_grouped_attrs( $attr_name ): " . join( ', ', @results ) . "\n";
     
     return @results;
 }
@@ -633,9 +632,11 @@ author and/or on their website or in their application.
 
 =head1 WEBSITE
 
-L<http://www.kavod.com/Business-Shipping>
+L<http://www.kavod.com/Business-Shipping/>
 
-Also see L<http://search.cpan.org/~dbrowning/Business-Shipping>
+CPAN web site: L<http://search.cpan.org/~dbrowning/Business-Shipping/>
+
+Backpan (old releases): L<http://backpan.cpan.org/authors/id/D/DB/DBROWNING/>
 
 =head1 SUPPORT
 
