@@ -1,6 +1,6 @@
 # Business::Shipping - Rates and tracking for UPS and USPS
 #
-# $Id: Shipping.pm 288 2005-08-14 16:51:27Z db-ship $
+# $Id: Shipping.pm 299 2005-09-17 01:26:48Z db-ship $
 #
 # Copyright (c) 2003-2005 Daniel Browning <db@kavod.com>. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -14,11 +14,11 @@ Business::Shipping - Rates and tracking for UPS and USPS
 
 =head1 VERSION
 
-Version 2.00
+Version 2.01
 
 =cut
 
-$VERSION = '2.00';
+$VERSION = '2.01';
 
 =head1 SYNOPSIS
 
@@ -46,7 +46,8 @@ Business::Shipping currently supports three shippers:
 
 =over 4
 
-=item * Shipment rate estimation using offline tables.
+=item * Shipment rate estimation using offline tables.  New tables are released whenever UPS updates them, and
+a script is available for automatically updating the fuel surcharge every month.
 
 =back
 

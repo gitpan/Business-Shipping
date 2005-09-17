@@ -4,10 +4,8 @@
 
     * How many releases should I leave on CPAN?  
 
-    * Remove t/manual/test-data... what is it?
-
-    * Add multiple source zips to the testing for offline ups: e.g. 33124
-
+    * Consider inside-out OO.
+    
     * Use Pod::Readme
     
     * Use Test::Spelling
@@ -25,8 +23,6 @@
 
     * Checkout CPAN tests.  It appears that t/16 is failing because it lacks a
       plan.
-
-
 	
     * Remove old versions from CPAN (up to 1.06) to ease the requirements of 
       mirrors.  Backpan will still carry the old versions.
@@ -518,7 +514,8 @@
 ################################################################################
  
     * [Bug] Return error message if trying to ship to military americas:
-      - USP does not ship to APO or FPO addresses.
+      - USP does not ship to APO or FPO addresses.  (Online or Offline), suggest
+        USPS instead.      
    
     * [Bug] Be able to handle "mal-formed XML doc" error return from UPS.  
       - Right now, it still tries to parse as an XML doc.

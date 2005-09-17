@@ -1,6 +1,6 @@
 package Business::Shipping::UPS_Online::RateRequest;
 
-use constant UPS_ONLINE_DISABLED => '1';
+use constant UPS_ONLINE_DISABLED => '0';
 #use constant UPS_ONLINE_DISABLED => '~_~UPS_ONLINE_DISABLED~_~';
 
 =head1 NAME
@@ -9,11 +9,11 @@ Business::Shipping::UPS_Online::RateRequest
 
 =head1 VERSION
 
-Version $Rev: 287 $
+Version $Rev: 295 $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 287 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 295 $; $r =~ /\d+/; $&; };
 
 =head1 REQUIRED FIELDS
 
