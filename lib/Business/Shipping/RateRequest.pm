@@ -10,7 +10,7 @@ Business::Shipping::RateRequest - Abstract class
 
 =head1 VERSION
 
-$Rev: 287 $
+$Rev: 306 $
 
 =head1 DESCRIPTION
 
@@ -22,7 +22,7 @@ Represents a request for shipping cost estimation.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 287 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 306 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -186,7 +186,7 @@ sub execute
             debug 'calculating multiple shipments due to overweight...';
             debug "original weight: $original_weight, max_weight_per_package: $max_weight_per_package";
             
-            my $MAX_NUM_PACKAGES = 10;
+            my $MAX_NUM_PACKAGES = 100;
             
             my $number_of_packages = $original_weight / $max_weight_per_package;
             if ( $number_of_packages != int $number_of_packages ) {

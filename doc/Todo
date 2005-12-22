@@ -2,32 +2,39 @@
 ##  General TODO
 ################################################################################
 
+    * Bathsheba Grossman: For instance, when you initially communicate with the USPS server, you're required to do so in a test mode. That's supported, which is good, but the switch doesn't seem to be documented outside the code itself, so it took me a while to find it.
+
+    * Make log4perl optional.
+
+    * UPS_Online: doesn't error out on the following invalid query:
+      # This rate request is invalid because 3DS is not available, though all
+      # the other services are available.
+        'from_zip'       => '16059',     # Valencia, PA
+        'service'        => '3DS', 
+        'to_residential' => '1',
+        'to_zip'         => '14534',     # Pittsford, NY
+        weight           =>  1.00,
+
+    * Data entry: all tiers in Excel, then export to CSV and split into multiple
+      files.
+
+    * Document the new 'tier' option.
+
+    * UPS_Offline: 
+      - weight of 330 to 87110 was overpriced ($189.21 instead of actual $127.51)
+
+    * Fix Meta error:
+    
+META.yml: META.yml found but error encountered while loading: --- !perl/YAML::Error
+code: YAML_PARSE_ERR_NO_SEPARATOR
+msg: Expected separator '---'
+line: 14
+document: 2
+..
+ at /home/k/PAUSE/cron/mldistwatch line 1599
+
     * How many releases should I leave on CPAN?  
-
-    * Consider inside-out OO.
-    
-    * Use Pod::Readme
-    
-    * Use Test::Spelling
-    
-    * UPS_Offline: Zone finder doesn't get correct zone record for 97015 zip.
-    
-    * UPS_Offline: In the tests, check to see if support for UPS_Online has been
-      disabled.  If so, don't run tests that use it.  (Then again, for most 
-      users, those tests wont be run anyway because they haven't setup the 
-      credentials).
-
-    * UPS_Offline: add a "adder_margin" to hundredweight shipments.  
-      Increases the price by x% percent (10% default) as a safety against the
-      very low default rates.
-
-    * Checkout CPAN tests.  It appears that t/16 is failing because it lacks a
-      plan.
-	
-    * Remove old versions from CPAN (up to 1.06) to ease the requirements of 
-      mirrors.  Backpan will still carry the old versions.
-      
-    * UPS_Offline: Extended Area Surcharges: International and Domestic
+      - Some users are still using 1.07 and 1.5x
 
     * Makefile.PL: Automatically determine if the user has write permissions
       for /usr/local.  If so, default to that directory.  Otherwise, default
@@ -37,35 +44,9 @@
     * Look for a way to move MANIFEST and Meta.yml to doc/ or etc/ so that the
       root directory can be less cluttered.
 
-    * DataTools: Remove the data from the "unknown" section since it is unused.
-    
-    * Remove files that we don't use from the DataFiles distribution
-
-    * DataTools: wweas.csv has two difficult characters:
-      - Causes CSV module to "fail" on those lines.
-      grep 'Colombia,,COV' data/*.csv
-      grep 'Colombia,,SAL' data/*.csv
-    
-    * DataTools: Excel documents
-      The following files are actually MS Excel documents.  Put a note in 
-      the docs somewhere that specifies they must be manually converted.
-      
-      akz_48.csv akz_air.csv hiz_48pr.csv hiz_ak.csv hiz_hi.csv
-      
     * Interchange Usertag: Store rate_request objects of like types between
       requests.  So that, for example, two requests that are run from the same
       Prefork'ed daemon will not have to load the Storable objects seperately.
-    
-    * UPS_Offline: Don't convert letter to 0, because letter means it is
-      enclosed in an envelope which may actually weigh more (for WW express, not
-      sure about other methods).
-      
-    * UPS_Offline: canstnd doesn't convert exactly right.
-      (500+, and the many 'Min' sections).
-      
-    * UPS_Offline: residential surcharge
-      - Is the 1.75 surcharge added per-shipment or per-package?  I think it may 
-        be per-package, but is currently calculated per-shipment.
 
     * Catch up on POD coverage.
     
@@ -123,19 +104,19 @@
     * [Enh] Look into Params::Validate and/or Class::Contract
  
     * [Enh] Add Test::Inline tests
+    
+    * Consider inside-out OO (Object::InsideOut, etc.)
+    
+    * Use Pod::Readme
+    
+    * Use Test::Spelling
 
     * [Enh] Consider using Locale::Country (5.8.x+) & Locale::SubCountry (CPAN),
       or Geography::States & Geography::Countries.
 
     * Module::Build
-      - use create_makefile_pl => 'traditional' (because of this post:)
+      - use create_makefile_pl => 'traditional'
       - http://perlmonks.org/?node_id=458282
-
-    * Bundle::Business::Shipping requires DataFiles, but DataFiles requires 
-      Business::Shipping during installation... so it recurses.  
-      - Just let it pick the directory instead of requiring Business::Shipping,
-        because it seems that requiring the module is enough to send CPAN off 
-        looking.
 
     * [P3] Build a test that will state with modules are missing at the 
       beginning, then the rest of the tests can be quiet.
@@ -300,6 +281,8 @@
     * [Enh] Add First-Class Mail
       - http://www.usps.com/consumers/domestic.htm#first
       - Can be done via an off-line calculation.
+      
+    * Extra intl rates from HTML::TableExtract
 
 ################################################################################
 ##  USPS_Online TODO
@@ -360,6 +343,43 @@
 ################################################################################
 ##  UPS_Offline TODO
 ################################################################################
+    
+    * UPS_Offline: Don't convert letter to 0, because letter means it is
+      enclosed in an envelope which may actually weigh more (for WW express, not
+      sure about other methods).
+      
+    * UPS_Offline: canstnd doesn't convert exactly right.
+      (500+, and the many 'Min' sections).
+      
+    * UPS_Offline: residential surcharge
+      - Is the 1.75 surcharge added per-shipment or per-package?  I think it may 
+        be per-package, but is currently calculated per-shipment.
+
+    * UPS_Offline: add a "adder_margin" to hundredweight shipments.  
+      Increases the price by x% percent (10% default) as a safety against the
+      very low default rates.
+      
+    * UPS_Offline: Extended Area Surcharges: Handle International too 
+      - Domestic works great. 
+    
+    * Calculate the delivery area surcharge amount from the accessorials.csv
+
+    * DataTools: Remove the data from the "unknown" section since it is unused.
+    
+    * Remove files that we don't use from the DataFiles distribution
+
+    * DataTools: wweas.csv has two difficult characters:
+      - Causes CSV module to "fail" on those lines.
+      grep 'Colombia,,COV' data/*.csv
+      grep 'Colombia,,SAL' data/*.csv
+    
+    * DataTools: Excel documents
+      The following files are actually MS Excel documents.  Put a note in 
+      the docs somewhere that specifies they must be manually converted.
+      
+      akz_48.csv akz_air.csv hiz_48pr.csv hiz_ak.csv hiz_hi.csv
+      
+
     * Implement the following logic:
     
 	- For UPS GND and 3DS, to determine the rate for multi-pacakge shipments weight 

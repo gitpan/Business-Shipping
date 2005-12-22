@@ -1,6 +1,6 @@
 # Business::Shipping - Rates and tracking for UPS and USPS
 #
-# $Id: Shipping.pm 299 2005-09-17 01:26:48Z db-ship $
+# $Id: Shipping.pm 319 2005-12-22 20:03:35Z db-ship $
 #
 # Copyright (c) 2003-2005 Daniel Browning <db@kavod.com>. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -14,11 +14,11 @@ Business::Shipping - Rates and tracking for UPS and USPS
 
 =head1 VERSION
 
-Version 2.01
+Version 2.02
 
 =cut
 
-$VERSION = '2.01';
+$VERSION = '2.02';
 
 =head1 SYNOPSIS
 
@@ -247,6 +247,11 @@ use Class::MethodMaker 2.0
     ];
 
 $Business::Shipping::RuntimeLoad = 1;
+
+# test numbers:
+# UPS  test tracking number: 1ZA723W80340522160
+# USPS test tracking number: EJ958083578US
+
 
 sub import 
 {
@@ -604,6 +609,8 @@ very few prerequisites.  Supports shipments that originate in USA and Canada.
 =item * Business::UPS - Online cost estimation module that uses the UPS web form
 instead of the UPS Online Tools.  For shipments that originate in the USA only.
 
+=item * Net::UPS - Implementation of UPS Online Tools API in Perl
+
 =item * http://www.halofree.com/lib/public/code/Ship/UPS.pm
 
 =item * http://www.halofree.com/lib/public/code/Ship/USPS.pm
@@ -613,7 +620,7 @@ instead of the UPS Online Tools.  For shipments that originate in the USA only.
 =head1 Use of this software
 
 It is appreciated when users mention their use of Business::Shipping to the 
-author and/or on their website or in their application.
+author and/or in their web site/application.
 
 =over 4
 

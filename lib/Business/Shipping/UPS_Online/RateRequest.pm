@@ -9,11 +9,11 @@ Business::Shipping::UPS_Online::RateRequest
 
 =head1 VERSION
 
-Version $Rev: 295 $
+Version $Rev: 318 $
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 295 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 318 $; $r =~ /\d+/; $&; };
 
 =head1 REQUIRED FIELDS
 
@@ -471,8 +471,9 @@ sub _handle_response
         $ups_results = [ $response_tree->{ RatedShipment } ];
     }
     
-    use Data::Dumper;
-    debug2 "ups_results = " . Dumper( $ups_results ); 
+    #use Data::Dumper;
+    #debug2 "ups_results = " . Dumper( $ups_results );
+    
     foreach my $ups_rate_info ( @$ups_results ) {
         
         my $service_code = $ups_rate_info->{ Service }->{ Code };
