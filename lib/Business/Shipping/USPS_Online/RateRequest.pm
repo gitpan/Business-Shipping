@@ -4,7 +4,7 @@ Business::Shipping::USPS_Online::RateRequest
 
 =head1 VERSION
 
-$Rev: 280 $
+$Rev: 338 $
 
 =head1 SERVICE TYPES
 
@@ -37,7 +37,7 @@ $Rev: 280 $
 
 package Business::Shipping::USPS_Online::RateRequest;
 
-$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
+$VERSION = do { my $r = q$Rev: 338 $; $r =~ /\d+/; $&; };
 
 use strict;
 use warnings;
@@ -259,13 +259,6 @@ sub _massage_values
     my $self = shift;
     
     $self->_domestic_or_intl();
-    
-    # Round up if United States... international can have less than 1 pound.
-    if ( $self->to_country() and $self->to_country() =~ /(USA?)|(United States)/ ) {
-        foreach my $package ( @{ $self->shipment->packages() } ) {
-            $package->weight( 1 ) if ( $package->weight and $package->weight < 1 );
-        }
-    }
     
     return;
 }

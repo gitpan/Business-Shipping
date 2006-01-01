@@ -1,6 +1,6 @@
 # Business::Shipping - Rates and tracking for UPS and USPS
 #
-# $Id: Shipping.pm 319 2005-12-22 20:03:35Z db-ship $
+# $Id: Shipping.pm 321 2005-12-22 22:30:48Z db-ship $
 #
 # Copyright (c) 2003-2005 Daniel Browning <db@kavod.com>. All rights reserved.
 # This program is free software; you may redistribute it and/or modify it under
@@ -14,11 +14,11 @@ Business::Shipping - Rates and tracking for UPS and USPS
 
 =head1 VERSION
 
-Version 2.02
+Version 2.03
 
 =cut
 
-$VERSION = '2.02';
+$VERSION = '2.03';
 
 =head1 SYNOPSIS
 
