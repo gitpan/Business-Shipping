@@ -1,16 +1,8 @@
-# Copyright (c) 2003 Kavod Technologies, Dan Browning. 
-# All rights reserved. 
-
 package Business::Shipping::RateRequest::Offline;
-
 
 =head1 NAME
 
 Business::Shipping::RateRequest::Offline - Abstract class for cost calculation.
-
-=head1 VERSION
-
-$Rev: 189 $      $Date: 2004-09-18 21:16:10 -0700 (Sat, 18 Sep 2004) $
 
 =head1 DESCRIPTION
 
@@ -23,24 +15,23 @@ a few miscellaneous functions.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 189 $; $r =~ /\d+/; $&; };
-
-use strict;
-use warnings;
-use base ( 'Business::Shipping::RateRequest' );
+use Any::Moose;
 use Business::Shipping::RateRequest;
 use Business::Shipping::Shipment;
 use Business::Shipping::Package;
 use Business::Shipping::Logging;
-use Class::MethodMaker 2.0 [ new => [ qw/ -hash new / ] ];
-    
+
+extends 'Business::Shipping::RateRequest';
+
+__PACKAGE__->meta()->make_immutable();
+
 =item * perform_action()
 
 For compatibility with parent class
 
 =cut
 
-sub perform_action {}
+sub perform_action { }
 
 =item * cache()
 
@@ -59,17 +50,16 @@ Shorten to three digits.  If the input doesn't have leading zeros, add them.
 
 =cut
 
-sub make_three 
-{
-    my ( $self, $zip ) = @_;
+sub make_three {
+    my ($self, $zip) = @_;
     return unless $zip;
-    trace( '( ' . ( $zip ? $zip : 'undef' ) . ' )' );
-    
-    $zip = substr( $zip, 0, 3 );
-    while ( length( $zip ) < 3 ) {
+    trace('( ' . ($zip ? $zip : 'undef') . ' )');
+
+    $zip = substr($zip, 0, 3);
+    while (length($zip) < 3) {
         $zip = "0$zip";
     }
-    
+
     return $zip;
 }
 
@@ -81,12 +71,12 @@ __END__
 
 =head1 AUTHOR
 
-Dan Browning E<lt>F<db@kavod.com>E<gt>, Kavod Technologies, L<http://www.kavod.com>.
+Daniel Browning, db@kavod.com, L<http://www.kavod.com/>
 
 =head1 COPYRIGHT AND LICENCE
 
-Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
-This program is free software; you may redistribute it and/or modify it under
-the same terms as Perl itself. See LICENSE for more info.
+Copyright 2003-2011 Daniel Browning <db@kavod.com>. All rights reserved.
+This program is free software; you may redistribute it and/or modify it 
+under the same terms as Perl itself. See LICENSE for more info.
 
 =cut

@@ -1,8 +1,10 @@
-We greatly appreciate the assistance that all of the following individuals have 
-contributed.
+The contributions of these people and organizations is greatly appreciated.
+
+ * End Point Corporation (http://www.endpoint.com/) has provided a
+   tremendous amount of support for this module.
 
  * The Rubenstein Technology Group (http://www.rubensteintech.com/), 
-   Ed Zborowski<ed@rubensteintech.com>, Martin H. Beauchamp 
+   Ed Zborowski <ed@rubensteintech.com>, Martin H. Beauchamp 
    <martin@rubensteintech.com>, and Jaron Rubenstein <jaron@rubensteintech.com>
    have contributed patches for the following: 
    - 1.57: Many bug fixes and new features: see ChangeLog.
@@ -27,6 +29,8 @@ contributed.
    - C.O.D. (Cash On Delivery) for UPS_Online (ver 1.55).
    - Various minor patches.
  
+ * Ron Phipps <ron@endpoint.com> fixed the fuel surcharge updater.
+   
  * Kevin Old <kold@carolina.rr.com> got the USPS XML generator working.
  
  * sauoq on PerlMonks.org provided valuable commentary and ideas.
@@ -34,16 +38,35 @@ contributed.
  * bbfu on PerlMonks.org got Class::MethodMaker working with SUPER.
  
  * Mark Stosberg <mark@stosberg.com> contributed documentation patches.
+  
+ * Chris Ochs <chris@paymentonline.com> contributed information about running
+   under mod_perl.
+   
+ * Kevin D. McClellan and Mark Milhollan contributed patches to fix USPS 
+   service match bugs.
 
- * Individuals who have contributed bug reports:
+ * Father Chrysostomos <sprout@cpan.org> contributed patches to fix OS X
+   installation issues. 
+   
+ * Josh Lavin <josh@perusion.com> contributed a patch to fix the UPS fuel
+   surcharge update script.
+
+ * Mike Wexler <mwexler@tias.com> contributed USPS_Online changes (2.03+):
+   - Fix weight calculation error and support shipments less than one pound.  
+   - Fix error messages on International requests.
+   - Add option to disable automatic package splitting.
+   - Add width, height, length, and girth.
+   
+ * Individuals who have contributed bug reports and feature suggestions:
    - Mike Castle <dalgoda@ix.netcom.com>
    - Richard Hornsby <rhornsby@io.osuedc.org>
    - Micah Gersten <micah@davka.com>
    - Chris Ochs <chris@paymentonline.com>
-   - Mike Heins <mike@perusion.com>
    - CPAN Tester Josts Smokehouse <Jost.Krieger+smokeback[at]ruhr-uni-bochum.de>
- 
- * Individuals who have contributed feature suggestions:
+   - Todd Anderson <ahqmed@hotmail.com>
+   - Joe Engleson <joe@jewebdesign.com>
    - Mark <MpoloN7@netscape.net>
    
+ * All the Perl and CPAN authors.
+
 Thank you.

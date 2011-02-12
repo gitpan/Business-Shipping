@@ -1,10 +1,8 @@
+package Business::Shipping::USPS_Online::Shipment;
+
 =head1 NAME
 
 Business::Shipping::USPS_Online::Shipment
-
-=head1 VERSION
-
-$Rev: 280 $
 
 =head1 DESCRIPTION
 
@@ -26,39 +24,62 @@ See Business::Shipping POD for usage information.
 
 =head2 mail_type
 
+=head2 width
+
+=head2 height
+
+=head2 length
+
+=head2 girth
+
 =cut
 
-package Business::Shipping::USPS_Online::Shipment;
-
-$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
-
-use strict;
-use warnings;
-use base ( 'Business::Shipping::Shipment' );
+use Any::Moose;
 use Business::Shipping::Logging;
 use Business::Shipping::Config;
 use Business::Shipping::Util;
 use Business::Shipping::USPS_Online::Package;
-use Class::MethodMaker 2.0 
-    [ 
-      new   =>  [ { -hash    => 1, -init => '_this_init' }, 'new' ],
-      new   =>  [ { -init    => '_this_init', }, 'default_new' ],
-      array =>  [ { -type    => 'Business::Shipping::USPS_Online::Package',
-                    -default_ctor => 'default_new' }, 'packages' ],
-      scalar => [ 'service' ],
-      scalar => [ { -default => 70 }, 'max_weight' ],
-];
+extends 'Business::Shipping::Shipment';
 
-sub _this_init
-{
-    $_[ 0 ]->from_country( 'US' );
+has 'packages' => (
+    is         => 'rw',
+    isa        => 'ArrayRef[Business::Shipping::USPS_Online::Package]',
+    default    => sub { [Business::Shipping::USPS_Online::Package->new()] },
+    auto_deref => 1,
+);
+
+has 'max_weight' => (is => 'rw', default => 70);
+has 'service' => (is => 'rw');
+has '_to_country' => (is => 'rw');
+
+sub BUILD {
+    $_[0]->from_country('US');
     return;
 }
 
-foreach my $attribute ( 'pounds', 'ounces', 'weight', 'container', 'size', 'machinable', 'mail_type' ) {
-    eval "sub $attribute { shift->package0->$attribute( \@_ ); }";
-}
+__PACKAGE__->meta()->make_immutable();
 
+# Can't use 'handles', because the ArrayRef itself doesn't actually handle
+# anything, it's the objects inside it that do.
+
+foreach my $attribute (
+    qw/
+    pounds
+    ounces
+    weight
+    container
+    size
+    machinable
+    mail_type
+    width
+    height
+    length
+    girth
+    /
+    )
+{
+    eval "sub $attribute { return shift->package0->$attribute( \@_ ); }";
+}
 
 =head2 from_country
 
@@ -75,27 +96,39 @@ own translations.  The former may not be necessary, but the latter is.
 
 =cut
 
-sub to_country
-{
+sub to_country {
+
     #trace '( ' . uneval( \@_ ) . ' )';
-    my ( $self, $to_country ) = @_;    
-    
-    if ( defined $to_country ) {
+    my ($self, $to_country) = @_;
+
+    if (defined $to_country) {
+
         #
         # Apply any Shipping::Shipment conversions, then apply our own.
         #
-        $to_country = $self->SUPER::to_country( $to_country );
+        $to_country = $self->SUPER::to_country($to_country);
         my $countries = config_to_hash(
-            cfg()->{ usps_information }->{ usps_country_name_translations }
-        );
-        $to_country = $countries->{ $to_country } || $to_country; 
-        
-        debug3( "setting to_country to \'$to_country\'" );
-        $self->{ to_country } = $to_country;
-    } 
-    debug3( "SUPER::to_country now is " . ( $self->SUPER::to_country() || '' ) );
-    
-    return $self->{ to_country };
+            cfg()->{usps_information}->{usps_country_name_translations});
+        $to_country = $countries->{$to_country} || $to_country;
+
+        trace("setting to_country to \'$to_country\'");
+        $self->_to_country($to_country);
+    }
+    trace("SUPER::to_country now is " . ($self->SUPER::to_country() || ''));
+
+    return $self->_to_country();
+}
+
+=head2 packages_push
+
+Syntatic sugar to avoid push @{$self->packages()}, $new_package;
+
+=cut
+
+sub packages_push {
+    my ($self, $new_package) = @_;
+    push @{ $self->packages() }, $new_package;
+    return;
 }
 
 1;
@@ -104,12 +137,12 @@ __END__
 
 =head1 AUTHOR
 
-Dan Browning E<lt>F<db@kavod.com>E<gt>, Kavod Technologies, L<http://www.kavod.com>.
+Daniel Browning, db@kavod.com, L<http://www.kavod.com/>
 
 =head1 COPYRIGHT AND LICENCE
 
-Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
-This program is free software; you may redistribute it and/or modify it under
-the same terms as Perl itself. See LICENSE for more info.
+Copyright 2003-2011 Daniel Browning <db@kavod.com>. All rights reserved.
+This program is free software; you may redistribute it and/or modify it 
+under the same terms as Perl itself. See LICENSE for more info.
 
 =cut

@@ -1,12 +1,187 @@
 Revision history for Business::Shipping
 =======================================
 
+
+2.4.0  February 12, 2011
+
+
+  General
+
+    * Change from Moose to Any::Moose
+      - This allows for the Mouse module which has far fewer dependencies, 
+        starts up faster, and has a lower memory footprint.
+
+    * Fix UPS bug in shipping to United Kingdom. CountryCode was always being 
+      set to 'UK', when UPS needs their 'GB' value.
+
+    * Apply perl coding style.
+
+  Backwards-Compatiblity:
+  
+    * Remove $VERSION from all the modules except Business::Shipping.
+      I don't think the benefit of sub-module-specific versions is significant.
+
+    * Use #!/usr/bin/env perl as the shebang for UPS surcharge update script. 
+      It provides wider compatibility and doesn't assume where the current
+      environment's perl is going to be.
+
+  USPS_Online
+
+    * Document new International USPS service types.
+    
+    * Reformatting, debug-logging changes, remove unused code.
+    
+    * Remove asterisks and "trademark" symbols in addition to "registered"
+      symbols.
+    
+    * Remove the never-quite-worked-right "find service by matching package 
+      type" code. It was trying too hard to be helpful and will more often than 
+      not just cover up the real problem -- that it can't find the service type 
+      by the normal method.
+    
+    * Reversed the polarity to fix bug in USPS service check: Check current
+      against desired instead of the other way around (which was often overzealous
+      in matching).
+      
+  UPS_Offline
+  
+    * Fix UPS fuel surcharge update script by updating regex [Josh Lavin].
+
+
+2.2.1 Limited beta release
+
+
+  General
+  
+    * [Fixed] You are overwriting a locally defined method (to_zip) with an 
+      accessor.
+    
+    * [Fixed] USPS not matching service descriptions.
+      This resolves the "Nested quantifiers in regex" error. Patches were sent
+      in by Mark Milhollan and Kevin D. McClellan. Thank you!
+
+    * Remove redundant 'Business.Shipping' from logging layout and fix logging
+      messages with the wrong caller (due to off-by-one error in call frame 
+      depth).
+
+
+2.2.0 Limited beta release
+
+
+  General
+    
+    * Upgraded from Class::MethodMaker to Moose.
+    
+    * Faster, simpler logging wrapper for Log4perl.
+    
+    * New version number scheme.
+    
+    * Many bug fixes, improvements, and style changes.
+
+    * Changed from Subversion to Git.
+
+  Backwards-Compatiblity:
+  
+    * New required module: Moose.
+    
+    * Minor API changes:
+      - log_level() and log4perl.conf now use standard levels (not custom).
+      - event_handlers() removed. This debug code was deprecated as of 1.06.
+      - $rate_request->packages() returns arrayref of Package objects.
+
+
+2.05 Limited beta release  
+
+
+  Upgrade Notes
+  
+    * Clear the cache (typically /tmp/FileCache).
+
+  USPS_Online
+  
+    * Change to protocol V3, with backwards-compatibility for version-2 
+      responses. 
+    
+    * Document new International sevice names:
+        Global Express Guaranteed
+        Express Mail International (EMS)
+        Express Mail International (EMS) Flat Rate Envelope
+        Priority Mail International
+        Priority Mail International Flat Rate Box
+        Priority Mail International Flat Rate Envelope
+        First Class Mail International
+        	
+    * Perl style changes
+    
+    * Improve error reporting in tests. Disable protocol V2 tests now that V3
+      is in use. Update the letter service test.
+      
+    * Fix several occurences of: Use of uninitialized value in concatenation (.)
+      or string at .../lib/site_perl/5.8.8/XML/DOM.pm line 483. There are 
+      several more that need to be fixed.
+      
+  UPS_Online
+  
+    * Disable a few tests until they can be fixed.
+    
+  Interchange UserTag
+  
+    * New feature to display all shipping options with prices at once.
+      - Templatable for <select> list or any other design.
+      - Store prices in $Session->{shipping}{$nickname} (where nickname is, 
+        for example, UPS_GNDRES, UPS_1DA, USPS_PRIORITY, USPS_EXPRESS, etc.). 
+      - Tests for the new feature.
+    
+    * Refactor error handling and other components.
+
+
+2.04  Limited beta release
+
+
+  USPS_Online and UPS_Online changes by Rusty Conover <rconover@infogears.com>:
+
+    * Rename tracking modules so they match the path, 
+      Business::Shipping::UPS_Online::Tracking and Business::Shipping::USPS_Online::Tracking.
+
+    * Fix tracking so it works with multiple tracking its, Class::MethodMaker 2.0 
+      is a little tricky about this, you can't pass an arrayref on the init for 
+      the tracking object, you need to pass it in a second call.  Update example code.
+
+    * Fix caching for tracking so it actually works, rather then failing with an error 
+      on Class::MethodMaker 2.x.
+
+    * Fix caching for tracking so it doesn't overwrite cached versions of results on 
+      every retrieval, causing the cache entries to never expire.
+
+    * Cleanup date parsing code in Business::Shipping::USPS_Online::Tracking and to 
+      no longer need Clone.
+  
+  USPS_Online changes by Mike Wexler <mwexler@tias.com>:
+  
+    * Fix error messages on International requests.
+    
+    * Add option to disable automatic package splitting.
+    
+    * Add width, height, length, and girth.
+     
+  General
+  
+    * [Fixed] Change GNU-style long-name command line arguments to more widely-
+      compatible one-letter arguments. Reported by Todd Anderson 
+      <ahqmed@hotmail.com>.
+      
+    * Removed some unused code.
+    
+    * Fix fuel surcharge updater. Contributed by Ron Phipps <ron@endpoint.com>.
+
+
+
 2.03  Dec 31 2005
 
 
   USPS_Online
   
-    * Fix weight calculation error and support shipments less than one pound.  
+    * Fix weight calculation error and support shipments less than one pound.
       Patch by Mike Wexler <mwexler@tias.com>.
   
   

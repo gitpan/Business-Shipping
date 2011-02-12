@@ -1,21 +1,8 @@
-# Business::Shipping::Package - Abstract class
-# 
-# $Id: Package.pm 280 2005-08-03 06:03:48Z db-ship $
-# 
-# Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
-# This program is free software; you may redistribute it and/or modify it under
-# the same terms as Perl itself. See LICENSE for more info.
-# 
-
 package Business::Shipping::Package;
 
 =head1 NAME
 
 Business::Shipping::Package - Abstract class
-
-=head1 VERSION
-
-$Rev: 280 $
 
 =head1 DESCRIPTION
 
@@ -26,11 +13,7 @@ implementation.
 
 =cut
 
-$VERSION = do { my $r = q$Rev: 280 $; $r =~ /\d+/; $&; };
-
-use strict;
-use warnings;
-use base ( 'Business::Shipping' );
+use Any::Moose;
 
 =head2 $package->weight()
 
@@ -42,11 +25,13 @@ Package ID (for unique identification in a list of packages).
 
 =cut
 
-use Class::MethodMaker 2.0
-    [ 
-      new    => [ qw/ -hash new / ],
-      scalar => [ 'weight', 'id', 'charges' ],
-    ];
+extends 'Business::Shipping';
+has 'weight'             => (is => 'rw');
+has 'id'                 => (is => 'rw');
+has 'charges'            => (is => 'rw');
+has 'dimensional_weight' => (is => 'rw');
+
+__PACKAGE__->meta()->make_immutable();
 
 1;
 
@@ -54,12 +39,12 @@ __END__
 
 =head1 AUTHOR
 
-Dan Browning E<lt>F<db@kavod.com>E<gt>, Kavod Technologies, L<http://www.kavod.com>.
+Daniel Browning, db@kavod.com, L<http://www.kavod.com/>
 
 =head1 COPYRIGHT AND LICENCE
 
-Copyright (c) 2003-2004 Kavod Technologies, Dan Browning. All rights reserved.
-This program is free software; you may redistribute it and/or modify it under
-the same terms as Perl itself. See LICENSE for more info.
+Copyright 2003-2011 Daniel Browning <db@kavod.com>. All rights reserved.
+This program is free software; you may redistribute it and/or modify it 
+under the same terms as Perl itself. See LICENSE for more info.
 
 =cut
