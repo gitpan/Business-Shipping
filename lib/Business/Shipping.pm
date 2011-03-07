@@ -17,11 +17,11 @@ use Business::Shipping::Util 'unique';
 
 =head1 VERSION
 
-Version 3.0.0
+Version 3.0.1
 
 =cut
 
-use version; our $VERSION = qv('3.0.0');
+use version; our $VERSION = qv('3.0.1');
 
 =head1 SYNOPSIS
 
@@ -132,15 +132,15 @@ For example:
 
  perl -MCPAN -e 'install Bundle::Business::Shipping'
 
-See doc/INSTALL.
+See INSTALL.
 
 =head1 REQUIRED MODULES
-
-See INSTALL.
 
  Any::Moose (any)
  Config::IniFiles (any)
  Log::Log4perl (any)
+
+See INSTALL.
 
 =head1 OPTIONAL MODULES
 
@@ -160,7 +160,7 @@ INSTALL.
 =head1 GETTING STARTED
 
 Be careful to read, understand, and comply with the terms of use for the 
-provider that you will use.
+shipping service that you will use.
 
 =head2 UPS_Offline: For United Parcel Service (UPS) offline rate requests
 
@@ -455,16 +455,13 @@ sub rate_request {
     return $rr;
 }
 
-=head2 _compat_shipper_name
-
-Shipper name backwards-compatibility
-
-1. Really old: "UPS" or "USPS" (assumes Online::)
-2. Semi-old:   "Online::UPS", "Offline::UPS", or "Online::USPS"
-3. Current:    "UPS_Online", "UPS_Offline", or "USPS_Online"
-
-=cut
-
+# _compat_shipper_name
+#
+# Shipper name backwards-compatibility
+#
+# 1. Really old: "UPS" or "USPS" (implies Online::)
+# 2. Semi-old:   "Online::UPS", "Offline::UPS", or "Online::USPS"
+# 3. Current:    "UPS_Online", "UPS_Offline", or "USPS_Online"
 sub _compat_shipper_name {
     my ($shipper) = @_;
 
@@ -541,9 +538,13 @@ Important modules that are related to Business::Shipping:
 
 =back
 
-Other Perl modules that are simliar to Business::Shipping:
+Other Perl modules that are similar to Business::Shipping:
 
 =over 4
+
+=item * Business::UPS::Tracking - Online shipment tracking.
+
+=item * WebService::UPS - Online shipment tracking
 
 =item * Business::Shipping::UPS_XML - Online cost estimation module that has 
 very few prerequisites.  Supports shipments that originate in USA and Canada.
@@ -552,10 +553,6 @@ very few prerequisites.  Supports shipments that originate in USA and Canada.
 instead of the UPS Online Tools.  For shipments that originate in the USA only.
 
 =item * Net::UPS - Implementation of UPS Online Tools API in Perl
-
-=item * http://www.halofree.com/lib/public/code/Ship/UPS.pm
-
-=item * http://www.halofree.com/lib/public/code/Ship/USPS.pm
 
 =back
  
@@ -584,11 +581,13 @@ author.
 
 =head1 WEBSITE
 
-L<http://www.kavod.com/Business-Shipping/>
+Source code repository: L<https://github.com/danielbr/Business--Shipping>
 
 CPAN web site: L<http://search.cpan.org/~dbrowning/Business-Shipping/>
 
 Backpan (old releases): L<http://backpan.cpan.org/authors/id/D/DB/DBROWNING/>
+
+Author homepage: L<http://www.kavod.com/Business-Shipping/>
 
 =head1 SUPPORT
 
@@ -596,10 +595,6 @@ This module is supported by the author. Please report any bugs or feature
 requests to C<bug-business-shipping@rt.cpan.org>, or through the web interface 
 at L<http://rt.cpan.org>. The author will be notified, and then you'll 
 automatically be notified of progress on your bug as the author makes changes.
-
-=head1 KNOWN BUGS
-
-See the C<doc/Todo> file for a comprehensive list of known bugs.
 
 =head1 CREDITS
 

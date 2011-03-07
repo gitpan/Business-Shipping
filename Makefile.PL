@@ -49,15 +49,17 @@ WriteMakefile(
     AUTHOR    => 'Daniel Browning <db@kavod.com>',
     CONFIGURE => \&extra_WriteMakefile_options,
     PREREQ_PM => {
-        'Any::Moose'    => 0,
-        'Log::Log4perl' => 0,
-        'Test::More'    => 0.40,
+        'Any::Moose'       => 0,
+        'Config::IniFiles' => 0,
+        'Log::Log4perl'    => 0,
+        'Test::More'       => 0.40,
     },
     EXE_FILES => ['bin/update-UPS-surcharge.pl',],
     NO_META   => 1,
 );
 
-# Override the standard "install" target, so that it calls "support_files_install"
+# Override the standard "install" target, so that it calls
+# "support_files_install"
 sub MY::install {
 
     package MY;
@@ -72,7 +74,8 @@ sub MY::install {
     return $new;
 }
 
-# Currently there is no data files installation, because the data files are installed by the DataFiles module.
+# Currently there is no data files installation, because the data files are
+# installed by the DataFiles module.
 sub MY::postamble {
     return qq{
 docs :
