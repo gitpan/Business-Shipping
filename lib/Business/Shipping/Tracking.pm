@@ -8,21 +8,21 @@ Business::Shipping::Tracking
 
 =head2 Example tracking request for USPS:
 
-use Business::Shipping::USPS_Online::Tracking;
+ use Business::Shipping::USPS_Online::Tracking;
 
-my $tracker = Business::Shipping::USPS_Online::Tracking->new();
+ my $tracker = Business::Shipping::USPS_Online::Tracking->new();
 
-$tracker->init(
-test_mode => 1,
-);
+ $tracker->init(
+     test_mode => 1,
+ );
 
-$tracker->tracking_ids('EJ958083578US', 'EJ958083578US');
+ $tracker->tracking_ids('EJ958083578US', 'EJ958083578US');
 
-$tracker->submit() || logdie $tracker->user_error();
-my $hash = $tracker->results();
+ $tracker->submit() || logdie $tracker->user_error();
+ my $hash = $tracker->results();
 
-use Data::Dumper;
-print Data::Dumper->Dump([$hash]);
+ use Data::Dumper;
+ print Data::Dumper->Dump([$hash]);
 
 =head1 ABSTRACT
 
@@ -33,7 +33,7 @@ Business::Tracking is an API for tracking shipments
 use Data::Dumper;
 use Business::Shipping::Logging;
 use Business::Shipping::Config;
-use Cache::FileCache;
+use CHI;
 use Business::Shipping::Package;
 use Any::Moose;
 use version; our $VERSION = qv('400');
@@ -41,12 +41,17 @@ use version; our $VERSION = qv('400');
 extends 'Business::Shipping';
 
 has 'is_success' => (is => 'rw');
-has 'cache'      => (is => 'rw');
 has 'invalid'    => (is => 'rw');
 has 'test_mode'  => (is => 'rw');
 has 'user_id'    => (is => 'rw');
 has 'password'   => (is => 'rw');
 has 'cache_time' => (is => 'rw');
+has 'cache'      => (is => 'rw');
+has 'cache_config' => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { { driver => 'File' } },
+);
 
 # Used to be a static class attribute
 has 'results'       => (is => 'rw', isa => 'HashRef');
@@ -124,7 +129,7 @@ sub submit {
     if ($self->cache()) {
         trace('cache enabled');
 
-        my $cache = Cache::FileCache->new();
+        my $cache = CHI->new(%{ $self->cache_config });
 
         foreach my $id (@{ $self->tracking_ids }) {
             my $key = $self->gen_unique_key($id);
@@ -185,7 +190,7 @@ sub submit {
         trace('cache enabled, saving results.');
 
    #TODO: Allow setting of cache properties (time limit, enable/disable, etc.)
-        my $new_cache = Cache::FileCache->new();
+        my $new_cache = CHI->new(%{ $self->cache_config });
 
         foreach my $id ($self->results_keys) {
             my $key = $self->gen_unique_key($id);

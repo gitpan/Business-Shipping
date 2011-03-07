@@ -17,11 +17,11 @@ use Business::Shipping::Util 'unique';
 
 =head1 VERSION
 
-Version 3.0.1
+Version 3.1.0
 
 =cut
 
-use version; our $VERSION = qv('3.0.1');
+use version; our $VERSION = qv('3.1.0');
 
 =head1 SYNOPSIS
 
@@ -151,7 +151,7 @@ For UPS offline rate estimation:
 The following modules are used by online rate estimation and tracking.  See 
 INSTALL.
 
- Cache::FileCache (any)
+ CHI (0.39)
  Crypt::SSLeay (any)
  LWP::UserAgent (any)
  XML::DOM (any)

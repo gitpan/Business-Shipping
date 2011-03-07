@@ -2,7 +2,7 @@ NAME
     Business::Shipping - Rates and tracking for UPS and USPS
 
 VERSION
-    Version 3.0.1
+    Version 3.1.0
 
 SYNOPSIS
   Rate request example
@@ -112,7 +112,7 @@ OPTIONAL MODULES
     The following modules are used by online rate estimation and tracking.
     See INSTALL.
 
-     Cache::FileCache (any)
+     CHI (0.39)
      Crypt::SSLeay (any)
      LWP::UserAgent (any)
      XML::DOM (any)
